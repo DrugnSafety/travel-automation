@@ -1,0 +1,13 @@
+{
+  "name": "travel-automation",
+  "version": "3.1.0",
+  "description": "여행 계획 입력(또는 대화형 창조)만으로 Notion 가이드북 + 구글맵 연계 + 가족 예습 자료 + Google Calendar + PowerPoint를 자동 생성하는 풀 패키지 여행 자동화 플러그인. v3: 이미지 시각 검증·Notion 첨부 업로드로 이미지 깨짐/오매칭 원천 차단, 위키피디아 기반 랜드마크 정확 이미지, AI 이미지 스타일 라이브러리 19종(+노션 프롬프트 카탈로그), 네이버/구글맵 저장 리스트 임포트, schema.org 예약 파싱, 아이·부모 이중 예습 가이드. v3.1: 완성된 노션 가이드북을 마크다운으로 변환해 GitHub에 백업하는 travel-notion-export 스킬 추가(개인정보 분리 원칙 내장).",
+  "author": {
+    "name": "Mingyu"
+  },
+  "keywords": [
+    "travel", "notion", "calendar", "powerpoint", "itinerary",
+    "google-maps", "naver-maps", "reviews", "image-validation",
+    "study-guide", "github-export", "여행", "자동화", "예습", "가족여행"
+  ]
+}

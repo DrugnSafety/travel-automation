@@ -1,0 +1,38 @@
+{
+  "mcpServers": {
+    "kiwi-flights": {
+      "type": "sse",
+      "url": "https://mcp.kiwi.com",
+      "description": "Kiwi.com 항공편 검색 — 출발지/목적지/날짜로 항공편 가격 비교",
+      "tools": ["search-flight"]
+    },
+    "trivago-hotels": {
+      "type": "sse",
+      "url": "https://mcp.trivago.com/mcp",
+      "description": "Trivago 호텔 검색 — 여행지별 숙소 가격/평점 비교",
+      "tools": ["trivago-accommodation-search", "trivago-accommodation-radius-search", "trivago-search-suggestions"]
+    },
+    "lilt-translation": {
+      "type": "sse",
+      "url": "https://mcp.lilt.com/mcp",
+      "description": "LILT 번역 — 현지 언어 긴급 표현, 메뉴 번역 등",
+      "tools": ["translate_text"]
+    },
+    "google-maps": {
+      "type": "sse",
+      "url": "https://mcp.composio.dev/partner/composio/google-maps/mcp",
+      "description": "Google Maps Place Details & Reviews — 관광지 리뷰, 평점, 영업시간. 연결 실패 시 travel-maps-integration 스킬의 무키 폴백(Universal Maps URL + 웹검색 + Chrome MCP) 사용",
+      "tools": ["google_maps_search", "google_maps_place_details", "google_maps_nearby_search"]
+    }
+  },
+  "_keyless_apis": {
+    "_comment": "MCP가 아닌 무료·무키 REST API — 스킬들이 curl로 직접 호출한다 (TREK 검증 소스)",
+    "wikipedia_summary": "https://en.wikipedia.org/api/rest_v1/page/summary/{title} — 랜드마크 대표 이미지·요약 (travel-image-search 1순위)",
+    "wikimedia_commons": "https://commons.wikimedia.org/w/api.php — 랜드마크 추가 이미지 검색 (2순위)",
+    "open_meteo": "https://api.open-meteo.com/v1/forecast — 16일 날씨 예보 (travel-maps-integration)",
+    "nominatim_osm": "https://nominatim.openstreetmap.org/search — 지오코딩 폴백 (User-Agent 헤더 필수)",
+    "overpass_osm": "https://overpass-api.de/api/interpreter — 주변 POI 탐색 폴백",
+    "naver_bookmark_share": "https://pages.map.naver.com/save-pages/api/maps-bookmark/v3/shares/{id} — 네이버지도 저장 리스트 임포트",
+    "google_maps_universal_url": "https://www.google.com/maps/search/?api=1&query=... / /maps/dir/?api=1&... — 키 불필요 지도·경로 딥링크"
+  }
+}
