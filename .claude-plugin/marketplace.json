@@ -1,0 +1,15 @@
+{
+  "name": "travel-automation",
+  "owner": {
+    "name": "Mingyu Kang",
+    "url": "https://github.com/DrugnSafety"
+  },
+  "description": "여행 일정표 하나로 Notion 가이드북·구글맵·AI 일러스트·캘린더·PPT·지출 관리를 자동 생성하는 단일 플러그인 저장소",
+  "plugins": [
+    {
+      "name": "travel-automation",
+      "source": "./",
+      "description": "Notion 가이드북 + 구글맵 연계 + AI 일러스트 + Google Calendar + PowerPoint + 지출 관리를 자동 생성하는 여행 자동화 플러그인 (21 skills)"
+    }
+  ]
+}

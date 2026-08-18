@@ -1,13 +1,32 @@
 {
   "name": "travel-automation",
-  "version": "3.1.0",
-  "description": "여행 계획 입력(또는 대화형 창조)만으로 Notion 가이드북 + 구글맵 연계 + 가족 예습 자료 + Google Calendar + PowerPoint를 자동 생성하는 풀 패키지 여행 자동화 플러그인. v3: 이미지 시각 검증·Notion 첨부 업로드로 이미지 깨짐/오매칭 원천 차단, 위키피디아 기반 랜드마크 정확 이미지, AI 이미지 스타일 라이브러리 19종(+노션 프롬프트 카탈로그), 네이버/구글맵 저장 리스트 임포트, schema.org 예약 파싱, 아이·부모 이중 예습 가이드. v3.1: 완성된 노션 가이드북을 마크다운으로 변환해 GitHub에 백업하는 travel-notion-export 스킬 추가(개인정보 분리 원칙 내장).",
+  "version": "3.2.0",
+  "description": "여행 일정표 하나로 Notion 가이드북 + 구글맵 연동 + AI 일러스트 + Google Calendar + PowerPoint를 자동 생성하는 여행 자동화 플러그인. v3는 상태 기반 하네스와 품질 검증 루프를 도입해 각 단계가 게이트를 통과해야만 다음으로 넘어가며, 실패 항목은 워크 큐에서 자동 재시도된다. 초기 질문 단계(travel-intake)에서 요일 검증, 차량 통행 제약, 공원 내외 숙소 구분, 이미지 밀도, 지도 연동 범위를 미리 확정해 재작업을 없앤다. v3.1은 여행 지출 관리 데이터베이스 생성(travel-expense-db)과 영수증 사진을 읽어 자동 등록하는 기능(travel-receipt-ocr)을 추가해, 계획부터 정산까지 한 플러그인에서 끝나도록 했다. 네이버 검색 MCP 기반 한국인 관점 리서치와 네이버 카페·블로그 URL 본문 확보 기능을 포함한다. v3.2는 GitHub 저장소를 이 최신 구조와 동기화하고 설치 가이드·변경 이력 문서를 정비했다.",
   "author": {
     "name": "Mingyu"
   },
+  "homepage": "https://github.com/DrugnSafety/travel-automation",
+  "repository": "https://github.com/DrugnSafety/travel-automation",
   "keywords": [
-    "travel", "notion", "calendar", "powerpoint", "itinerary",
-    "google-maps", "naver-maps", "reviews", "image-validation",
-    "study-guide", "github-export", "여행", "자동화", "예습", "가족여행"
+    "travel",
+    "notion",
+    "google-maps",
+    "kml",
+    "gpt-image-2",
+    "naver",
+    "calendar",
+    "powerpoint",
+    "itinerary",
+    "여행",
+    "자동화",
+    "구글맵",
+    "네이버검색",
+    "일러스트",
+    "expense",
+    "receipt",
+    "ocr",
+    "지출관리",
+    "영수증",
+    "정산"
   ]
 }
