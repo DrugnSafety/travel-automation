@@ -1,102 +1,159 @@
 ---
 name: travel-maps-integration
-description: Google Maps를 여행 가이드 전반에 연계합니다. 스팟별 구글맵 바로가기 링크, Day별 경유지 포함 경로 링크, 이동 거리·시간 검증, 평점·운영시간 조회를 수행하고 Notion·Calendar에 딥링크를 심습니다. 사용자가 구글맵 연동, 지도 링크, 경로 만들어줘, 내비 링크, 이동 시간 확인 등을 요청할 때 이 스킬을 사용하세요.
+description: 여행 일정의 모든 장소를 좌표 기반으로 정리해 구글맵과 연동하는 스킬. 날짜별 노션 페이지에 임베드 지도와 모바일 내비 딥링크를 삽입하고, 장소별 좌표 링크 표를 만들며, Google My Maps로 일괄 임포트할 수 있는 KML과 CSV, 경로 URL 목록을 생성한다. 사용자가 구글맵 연동, 지도 추가, 경로 만들기, 내비 링크, 장소 저장, My Maps, KML, 동선 정리, 지도 페이지 등을 요청할 때 사용. 구글맵 개인 저장 목록에는 외부 API로 쓸 수 없다는 제약과 그 우회법을 함께 안내한다.
 ---
 
 # Travel Maps Integration
 
-Google Maps를 **API 키 없이도** 최대한 활용하는 스킬. 핵심 산출물은 ① 스팟별 지도 딥링크 ② Day별 전체 경로 딥링크 ③ 이동 시간 검증 데이터.
+## 먼저 알아야 할 제약
 
-## 1. 스팟별 지도 딥링크 (Universal Maps URL — 키 불필요, 전 플랫폼 동작)
+**구글맵의 개인 "저장됨(Saved)" 목록에 외부에서 장소를 추가하는 공개 API는 없다.** Google Places API는 읽기 전용이고, Google Maps JavaScript API에도 사용자 저장 목록 쓰기 기능이 없다. 브라우저 자동화로 별표를 누르는 방법은 봇 차단 때문에 실무에서 실패한다.
 
-plan JSON의 `gmaps_query`로 표준 URL 생성:
+사용자가 "자동으로 내 구글맵에 저장 안 되나요?"라고 물으면 **이 사실을 먼저 알리고** 아래 대안을 제시한다.
+
+| 방법 | 소요 | 결과 | 권장도 |
+|---|---|---|---|
+| **Google My Maps + KML 임포트** | 3분 | 전 장소가 Day별 폴더로 정리된 개인 지도. 휴대폰 구글맵 "저장됨 → 지도" 탭에 표시 | ⭐ 최선 |
+| 앱에서 수동 별표 | 장소당 20초 | 기본 "저장됨" 목록에 들어감 | 핵심 장소만 |
+| 브라우저 자동화 | — | 봇 차단으로 실패 | ❌ |
+
+**이 안내는 작업 후반이 아니라 초기 질문 단계(`travel-intake` Q4-2)에서 해야 한다.**
+
+---
+
+## 산출물 5종
+
+### 1. 날짜별 노션 페이지 지도 섹션
+
+각 날짜 페이지 하단에 다음 블록을 `insert_content`로 추가한다.
+
+````markdown
+---
+
+## 🗺️ Day {N} 지도
+
+<embed src="https://maps.google.com/maps?saddr={출발lat},{출발lon}&daddr={경유다1}+to:{경유다2}+to:{도착}&output=embed">Day {N} 경로: {요약} (약 {거리}마일 / {시간})</embed>
+
+📱 [**휴대폰에서 내비 시작하기 →**](https://www.google.com/maps/dir/?api=1&origin={lat},{lon}&destination={lat},{lon}&waypoints={lat},{lon}%7C{lat},{lon}&travelmode=driving)
+
+### 개별 장소 바로가기
+
+<table header-row="true">
+<tr><td>장소</td><td>구글맵</td><td>메모</td></tr>
+<tr><td>{이모지} {장소명}</td><td>[열기](https://www.google.com/maps/search/?api=1&query={lat},{lon})</td><td>{메모}</td></tr>
+</table>
+````
+
+**임베드 지도는 API 키가 필요 없다.** `maps.google.com/maps?...&output=embed` 형식은 무료 공개 임베드다. `google.com/maps/embed/v1/`은 키가 필요하니 쓰지 않는다.
+
+### 2. 모바일 딥링크 규칙
+
+노션 모바일 앱에서 링크를 누르면 구글맵 앱이 열려야 한다. 다음 형식을 쓴다.
+
+| 용도 | URL |
+|---|---|
+| 단일 장소 | `https://www.google.com/maps/search/?api=1&query={lat},{lon}` |
+| 경로 | `https://www.google.com/maps/dir/?api=1&origin={lat},{lon}&destination={lat},{lon}&waypoints={lat},{lon}%7C{lat},{lon}&travelmode=driving` |
+| 임베드 | `https://maps.google.com/maps?saddr=...&daddr=...+to:...&output=embed` |
+
+주의사항:
+- 마크다운 링크 안에서 waypoints 구분자 `|`는 **`%7C`로 인코딩**한다. 인코딩하지 않으면 표 문법과 충돌한다.
+- 경유지는 **최대 9개**. 초과하면 핵심 지점만 넣고 나머지는 표로 제공한다.
+- 좌표는 소수점 4자리면 약 11m 정밀도로 충분하다.
+
+### 3. KML — Google My Maps 임포트용
+
+Day별 `<Folder>` 구조로 생성한다. 카테고리별 아이콘·색상을 지정하면 지도가 한눈에 읽힌다.
 
 ```
-검색:   https://www.google.com/maps/search/?api=1&query={URL인코딩된 장소명+지역}
-장소ID: https://www.google.com/maps/search/?api=1&query={장소명}&query_place_id={place_id}
+scripts/build_map_assets.py --spots spots.json --out assets/
 ```
 
-- 쿼리는 반드시 `장소명 + 도시/주`로 구체화 (예: `Horseshoe Bend, Page, AZ`) — 동명 장소 오매칭 방지
-- Notion 스팟 섹션의 기본정보 테이블에 `📍 지도` 행으로 삽입: `[Google Maps에서 열기]({URL})`
-- Google Calendar 이벤트의 location 필드에는 장소명+주소 문자열을 넣고, description에 딥링크 추가
+카테고리 → 아이콘 매핑 기본값:
 
-## 2. Day별 경로 딥링크 (경유지 포함 — 현지에서 바로 내비 시작)
+| 카테고리 | 아이콘 | 색상 |
+|---|---|---|
+| 공항 | plane | 파랑 |
+| 차량 (렌트/반납) | car | 회색 |
+| 관문 (공원 입구) | gate | 갈색 |
+| 숙박 | campground / lodging | 초록 |
+| 관광 | camera | 빨간 |
+| 야생동물 | paw | 주황 |
+| 식당 | dining | 노랑 |
+| 쇼핑 | shopping | 보라 |
+| 주유·편의 | gas | 청록 |
+| 경유 | dot | 흰색 |
 
+### 4. CSV
+
+**UTF-8 BOM**으로 저장한다. BOM이 없으면 한국어 Excel에서 한글이 깨진다.
+
+컬럼: `Day, 장소명(한), 장소명(영), 위도, 경도, 카테고리, 메모, 구글맵링크`
+
+### 5. 전체 지도·경로 노션 페이지
+
+메인 페이지 하위에 독립 페이지를 만든다. 구성:
+
+1. My Maps 임포트 3단계 안내
+2. 자동 저장 제약 설명 표
+3. 날짜별 경로 링크 표 (11개 행)
+4. 전체 장소 표 (Day별 소제목 + 좌표 링크)
+5. 첨부 파일 3종 설명
+
+---
+
+## 좌표 수집
+
+### 우선순위
+
+1. **공식 출처** — NPS 등 공공기관이 공개한 좌표
+2. **연결된 MCP** — TomTom Maps(`tomtom-geocode`, `tomtom-poi-search`), Google Maps MCP
+3. **웹 검색** — "{장소명} coordinates latitude longitude"
+4. **지도 URL 파싱** — 구글맵 URL의 `@lat,lon,zoom` 구간
+
+### 검증
+
+수집한 모든 좌표는 여행 지역 바운딩 박스 안에 있어야 한다.
+
+```python
+BOX = {"n": 46.0, "s": 43.0, "w": -112.0, "e": -101.0}  # 예: 옥로스톤~배들랜즈
+assert BOX["s"] <= lat <= BOX["n"] and BOX["w"] <= lon <= BOX["e"]
 ```
-https://www.google.com/maps/dir/?api=1
-  &origin={출발지}
-  &destination={최종 목적지}
-  &waypoints={경유지1}|{경유지2}|{경유지3}
-  &travelmode=driving
+
+부호 누락(`-110` → `110`)이 가장 흔한 오류다. 서경은 반드시 음수다.
+
+### pull-out과 전망대
+
+국립공원의 전망대·야생동물 관찰 지점은 정식 주소가 없다. **이름 검색으로는 못 찾거나 엉뚱한 곳이 나온다.** 반드시 좌표로 지정한다.
+
+또한 대형차 주차가 가능한 별도 트레일헤드가 있는 경우, **본 주차장이 아니라 그쪽 좌표를 준다.** (예: 그랜드프리즘매틱 본 주차장 대신 페어리폴스 트레일헤드)
+
+---
+
+## 스팟 데이터 스키마
+
+```json
+{
+  "id": "grand-prismatic",
+  "day": 2,
+  "name_ko": "그랜드프리즘매틱",
+  "name_en": "Grand Prismatic Spring",
+  "lat": 44.5251, "lon": -110.8383,
+  "category": "관광",
+  "note": "미국 최대 온천 · 지름 112m",
+  "parking": {
+    "primary": {"lat": 44.5251, "lon": -110.8383, "rv_ok": false},
+    "alternate": {"name": "Fairy Falls Trailhead", "lat": 44.5133, "lon": -110.8300, "rv_ok": true}
+  },
+  "best_time": "오전 10~12시 (수증기가 걸힌 뒤)",
+  "arrival_order": 3
+}
 ```
 
-- 경유지 최대 9개 (URL 한계). 스팟이 더 많으면 오전/오후 2개 링크로 분할
-- 각 Day 페이지 "🚗 이동 시간표" 섹션 상단에 `[🗺️ 오늘 전체 경로 열기]({URL})` 배치
-- 메인 페이지 "🗺️ 한눈에 보기" 섹션에 Day별 경로 링크 테이블 추가
+## 연동 가능한 MCP
 
-## 3. 이동 거리·시간 검증
+`.mcp.json`에 정의되어 있으면 활용한다. 없으면 웹 검색으로 대체하고, 사용자에게 연결을 제안한다.
 
-일정의 이동 시간이 현실적인지 검증한다 (아이 동반 일정의 핵심 품질 요소):
-
-```
-우선순위:
-① Google Maps MCP 연결 시: directions/distance 조회
-② WebSearch: "driving time {A} to {B}" — 최소 2개 출처 교차 확인
-③ Chrome MCP: google.com/maps/dir/{A}/{B} 페이지를 열어 소요시간 텍스트 읽기
-```
-
-- 검증 결과가 plan JSON의 `drive_min`과 20% 이상 차이나면 사용자에게 경고 + 일정 조정 제안
-- 결과를 plan JSON에 `verified_drive_min` 필드로 기록 (출처 병기)
-
-## 4. 평점·운영시간·리뷰 (travel-spot-reviews와 연계)
-
-- Google Maps MCP가 연결되어 있으면: place details로 평점·리뷰수·운영시간 → 스팟 기본정보 테이블에 반영
-- 없으면: WebSearch로 `"{스팟명}" hours rating` 조회 후 공식 사이트로 교차 확인, Chrome MCP 스크래핑 보완
-- 심층 리뷰 분석(팁·주의사항 추출)은 travel-spot-reviews 스킬 담당 — 중복 수집하지 않는다
-
-## 5. 지도 저장 리스트 임포트 (TREK 방식 차용)
-
-사용자가 구글맵/네이버지도에 저장해 둔 장소 리스트 URL을 주면 스팟 목록으로 자동 변환한다:
-
-### 구글맵 공유 리스트
-1. `goo.gl`/`maps.app.goo.gl` 단축링크는 `curl -sI`로 리다이렉트를 추적해 원본 URL 확보
-2. WebFetch 또는 Chrome MCP로 리스트 페이지를 열어 장소명·좌표·메모 추출
-3. 개별 공유 링크는 URL 좌표(`@lat,lng`) 또는 장소명으로 해석
-
-### 네이버지도 저장 폴더
-1. `naver.me` 단축링크 해제 → 폴더 공유 URL 확보
-2. 북마크 공유 API로 목록 조회 (TREK 검증 엔드포인트):
-   `https://pages.map.naver.com/save-pages/api/maps-bookmark/v3/shares/{공유ID}?limit=20&placeInfo=true&sort=lastUseTime&mcids=ALL` (페이지네이션)
-3. 응답에서 `name`, `py`(위도), `px`(경도), `memo`, `address` 추출
-4. API 실패 시 Chrome MCP로 공유 페이지를 직접 열어 읽기
-
-### 공통 후처리
-- 좌표 근접(±0.0001, 약 11m) + 정규화 이름으로 중복 제거
-- 추출된 스팟은 plan JSON의 `spots`로 병합 → travel-plan-intake에 전달
-- 각 스팟의 메모(`memo`)는 사용자 의도이므로 Notion 스팟 섹션에 "💬 내 메모"로 보존
-
-## 6. 날씨 연동 (Open-Meteo — 무료·키 불필요)
-
-Day 페이지 "일자 개요" 날씨 자동 채움 (여행 16일 전부터 유효):
-```bash
-curl -s "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=auto&start_date={날짜}&end_date={날짜}"
-```
-- 16일 이전 기획 단계에는 기후 평년값(웹 검색)으로 "🌡️ 기후 요약" 테이블을 채우고, 출발 1~2주 전 이 API로 실예보 갱신을 제안한다.
-
-## 7. My Maps 커스텀 지도 (선택 — 사용자 요청 시)
-
-전체 여행 스팟을 한 지도에 표시하고 싶을 때:
-1. 스팟 목록을 CSV로 생성 (`name, address, day, note` 컬럼)
-2. 사용자에게 CSV 전달 + Google My Maps 임포트 절차 안내 (mymaps.google.com → 만들기 → 가져오기)
-3. 또는 Chrome MCP로 My Maps 생성 과정을 직접 자동화 (사용자 로그인 상태 필요)
-4. 완성된 My Maps 공유 링크를 Notion 메인 페이지에 embed
-
-## 6. 오프라인 대비 블록
-
-각 여행 메인 페이지 교통 섹션에 자동 삽입:
-- 오프라인 지도 다운로드 안내: Google Maps 앱 → 프로필 → 오프라인 지도 → 여행 지역 저장
-- 국립공원 등 통신 불가 지역 목록 (리서치 결과 기반) + 종이 지도 대안
-
-## 파이프라인 내 위치
-
-notion-travel-page 직후 실행 — 페이지 골격이 생긴 뒤 지도 링크를 일괄 삽입하고, travel-calendar-sync가 이 스킬의 링크 데이터를 재사용한다. 산출물: `/tmp/{여행지}_maps.json` (spot별 딥링크 + Day별 경로 링크 + 검증된 이동시간).
+- **TomTom Maps** — 지오코딩, POI 검색, 경로 계산, 실시간 교통
+- **Google Maps (Composio)** — 장소 상세, 리뷰, 영업시간
+- **Felt Maps** — `create_map`, 레이어 관리 (공유 가능한 웹 지도)
