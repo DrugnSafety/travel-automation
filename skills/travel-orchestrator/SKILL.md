@@ -1,111 +1,212 @@
 ---
 name: travel-orchestrator
-description: 여행 계획 입력(또는 대화형 창조)부터 Notion 가이드북, 이미지, 구글맵 연계, 가족 예습 자료, Google Calendar, PPT까지 전체 여행 가이드 제작 파이프라인을 자동 오케스트레이션합니다. 사용자가 여행 자동화, 여행 가이드 만들기, 전체 여행 세팅, 여행 패키지 실행, 여행 파이프라인 등을 요청할 때 이 스킬을 사용하세요.
+description: 여행 자동화 전체 파이프라인을 하네스(harness) 구조로 실행하는 오케스트레이터. trip-brief.json을 단일 입력으로 받아 리서치 → 노션 생성 → 이미지 → 지도 → 보강 → 검증 루프 → 산출물 단계를 상태 기반으로 진행하며, 각 단계는 게이트(gate)를 통과해야만 다음으로 넘어간다. 실패한 항목은 워크 큐에 남아 최대 3회까지 자동 재시도된다. 사용자가 여행 가이드 전체 생성, 여행 자동화 실행, /new-trip, 파이프라인 재개, 특정 단계만 다시 실행 등을 요청할 때 사용. travel-intake 스킬이 먼저 실행되어 trip-brief.json이 있어야 한다.
 ---
 
-# Travel Orchestrator v3
+# Travel Orchestrator v3 — 하네스 & 루프 구조
 
-여행 계획 하나로 완성도 높은 가이드(Notion + Maps + 예습자료 + Calendar + PPT)를 자동 생성한다. 모든 단계는 **표준 스냅샷 JSON**을 통해 데이터를 주고받는다.
+## 설계 원칙
 
-## 파이프라인 (12단계)
+v2는 Phase 0 → Phase 6의 **일직선 파이프라인**이었다. 문제는 중간 단계가 부분 실패했을 때 감지되지 않고 그대로 다음 단계로 넘어갔다는 점이다.
 
-```
-Phase 0   travel-plan-intake        — 사용자 자료 파싱 or 대화형 계획 창조 → plan.json
-Phase 0.3 스타일 질문 (AskUserQuestion 1회) — 히어로 이미지 스타일 + 산출물 범위 확인
-Phase 0.5 travel-transport-info     — 예약 자료 schema.org 파싱 → transport.json
-Phase 1   travel-research           — 스팟별 6카테고리 리서치 (Agent 병렬) → enriched.md
-Phase 2   notion-travel-page        — 메인 + Day별 + 유틸 서브 페이지 생성 → notion_ids.json
-Phase 2.5 travel-maps-integration   — 지도 딥링크·경로·이동시간 검증·날씨 → maps.json
-Phase 3   travel-image-search       — 실사 이미지 확보 + 시각 검증 + 첨부 업로드 → images.json
-Phase 3.3 travel-image-generator    — (스타일 선택 시) 히어로·일정표·체크리스트 생성 이미지
-Phase 3.5 travel-image-validator    — 접근성 + 관련성 2중 검증 & 교체
-Phase 4   travel-content-enrichment — 6가지 상세 블록 보강
-Phase 4.5 travel-spot-reviews       — Google Maps/커뮤니티 리뷰 팁·주의사항
-Phase 4.7 travel-study-guide        — 🎓 서현이 코너 + 👩 부모 브리핑 페이지
-Phase 5   travel-calendar-sync      — 캘린더 등록 (확인 후) / ICS 폴백
-Phase 6   travel-presentation       — PPT 생성
-Phase 7   완료 리포트 + 스냅샷 갱신 + 메모리 저장
-```
+v3는 세 가지를 바꿔다.
 
-## 표준 스냅샷: `/tmp/{여행지}_summary.json` (TREK get_trip_summary 패턴)
+1. **상태 파일 기반 하네스** — 진행 상황이 파일에 남아 중단·재개가 가능하다
+2. **게이트** — 각 단계는 검증을 통과해야만 완료 처리된다
+3. **워크 큐 루프** — 실패 항목이 큐에 남아 자동 재시도된다
 
-각 Phase 완료 시 이 파일에 결과를 병합한다. 이후 단계·재실행·부분 실행이 항상 이 파일 하나만 읽으면 되도록:
+## 상태 파일
+
+작업 디렉터리: `/tmp/{trip_slug}/`
+
+| 파일 | 역할 |
+|---|---|
+| `trip-brief.json` | 입력 단일 진실 공급원. **오케스트레이터는 이 파일을 수정하지 않는다** |
+| `state.json` | 단계별 상태, 생성된 페이지 ID, 재시도 카운터 |
+| `work_queue.json` | 실패·미완 항목 큐 |
+| `research/*.md` | 스팟별 리서치 결과 |
+| `assets/` | KML·CSV·이미지·프롬프트 |
+| `report.md` | 최종 완료 리포트 |
+
+### state.json 스키마
 
 ```json
 {
-  "plan": { ...plan.json 내용... },
-  "transport": { ... }, "notion_ids": { ... }, "maps": { ... },
-  "images": [ ... ], "enrichment_done": ["day1", ...],
-  "calendar": {"events": 24, "method": "mcp|ics"},
-  "ppt": {"file": "...", "slides": 18},
-  "phase_log": [{"phase": "2", "status": "done", "at": "..."}]
+  "trip_slug": "yellowstone-2026",
+  "stages": {
+    "S1_research":    {"status": "done",    "attempts": 1, "gate": "pass"},
+    "S2_scaffold":    {"status": "done",    "attempts": 1, "gate": "pass"},
+    "S3_content":     {"status": "running", "attempts": 1, "gate": null},
+    "S4_images":      {"status": "pending", "attempts": 0, "gate": null},
+    "S5_illustration":{"status": "pending", "attempts": 0, "gate": null},
+    "S6_maps":        {"status": "pending", "attempts": 0, "gate": null},
+    "S7_enrich":      {"status": "pending", "attempts": 0, "gate": null},
+    "S8_audit":       {"status": "pending", "attempts": 0, "gate": null},
+    "S9_export":      {"status": "pending", "attempts": 0, "gate": null}
+  },
+  "notion": {
+    "main_page_id": "...",
+    "day_pages": {"1": "...", "2": "..."},
+    "reference_pages": {"동물 도감": "..."}
+  },
+  "spots": [
+    {"id": "old-faithful", "day": 2, "name_ko": "올드페이스풀",
+     "lat": 44.4605, "lon": -110.8281,
+     "images": 2, "has_tips": true, "has_parking": true, "has_besttime": true}
+  ],
+  "failures": []
 }
 ```
 
-- **부분 실행/재실행**: phase_log를 보고 완료된 단계는 건너뛴다 (중복 페이지·중복 이벤트 방지)
-- 스냅샷이 이미 존재하는 여행이면 "이어서 진행할까요?" 확인
+`status` 값: `pending` → `running` → `done` / `failed`
+`gate` 값: `null` → `pass` / `fail`
 
-## Phase 0.3: 사용자 질문은 시작 시 한 번에 (중간 블로킹 금지)
+---
 
-AskUserQuestion 1회로 묶어서 질문:
-1. **히어로 이미지 스타일**: 실사(기본) / 시네마틱 AI / 수채화 AI / 인포그래픽 AI (travel-image-generator 라이브러리 기준)
-2. **산출물 범위**: 전체 / Notion만 / Notion+캘린더 (기본: 전체)
-3. **예습 자료 포함 여부**: 서현이 코너 + 부모 브리핑 (기본: 포함)
+## 단계 정의
 
-이후 파이프라인은 캘린더 등록 확인(Phase 5)과 계획 창조 승인(Phase 0, 모드 B일 때) 외에는 질문 없이 완주한다.
+각 단계는 **실행 → 게이트 검증 → 상태 기록** 3부로 구성된다.
 
-## 단계별 핵심 규칙
+### S1. 리서치
 
-| Phase | 규칙 |
-|-------|------|
-| 0 | plan.json의 스팟마다 `gmaps_query`·`wiki_title` 필수 채움 |
-| 0.5 | 파싱 결과 pending → 사용자 확인 후 확정 |
-| 1 | Day 3~4개 단위 Agent 병렬. 각 Agent에 6카테고리+출처 명시 지시 |
-| 2 | 이미지 없는 상태로 골격 생성 (플레이스홀더 금지). MCP 리소스 enhanced-markdown-spec 선확인 |
-| 2.5 | 이동시간 검증 결과가 plan과 20%+ 차이 시 경고 |
-| 3 | 스팟당 위키피디아 1순위 → **Read로 시각 검증** → notion-create-attachment 업로드 |
-| 3.5 | file-upload 첨부는 접근성 검사 스킵, 외부 embed만 HTTP 검사. 관련성은 전수 |
-| 4.7 | 스팟당 아이용 800자+/부모용 500자+ |
-| 5 | 이벤트 목록 테이블 확인 후 등록. MCP 실패 시 ICS 생성 |
-| 6 | images.json의 로컬 사본 재활용 (재다운로드 금지) |
+- 스킬: `travel-research`, **`travel-naver-search`(필수)**, `travel-url-ingest`
+- 실행: Agent tool로 3~4일치씨 묶어 병렬 처리
+- **네이버 검색은 선택이 아니다.** 스팟마다 최소 1회 네이버 블로그/카페 검색을 수행한다.
 
-## 오류 처리
+**게이트 G1**: 모든 스팟에 대해 `research/{spot_id}.md` 존재, 6개 카테고리 섹션 모두 500자 이상, 네이버 출처 최소 1건
 
-| 실패 단계 | 대응 |
-|-----------|------|
-| Phase 0 파싱 실패 | 원문 일부를 보여주고 수동 확인 요청 |
-| Phase 1 리서치 | 실패 스팟만 재시도 3회 → 기본 정보로 진행, 리포트에 표기 |
-| Phase 2 Notion API | 재시도 → replace_content 폴백. 실패 페이지는 스냅샷에 기록 후 계속 |
-| Phase 3 이미지 | 소스 사다리 폴백 (wiki→commons→공식→생성) → 최종 실패 시 이미지 생략 |
-| Phase 5 캘린더 | ICS 폴백 |
-| Phase 6 PPT | PowerPoint MCP → pptx 라이브러리 폴백 |
+실패 시: 해당 스팟만 `work_queue`에 적재
 
-어떤 단계도 전체 파이프라인을 중단시키지 않는다 — 실패는 기록하고 계속, 완료 리포트에 "수동 확인 필요" 섹션으로 정리.
+### S2. 노션 스캐폴드
 
-## 부분 실행 라우팅
+- 스킬: `notion-travel-page`
+- 메인 페이지 + 날짜별 페이지 + 참고 자료 페이지의 **껵데기만** 먼저 만든다. 각 페이지 ID를 `state.json`에 즉시 기록
+
+> ⚠️ 메인 페이지에 `replace_content` + `allow_deleting_content: true`를 쓰면 새 본문에서 참조되지 않은 하위 페이지가 **전부 아카이브된다.** 스캐폴드 이후 메인 페이지 수정은 반드시 `update_content` 또는 `insert_content`를 쓔다.
+
+**게이트 G2**: 모든 페이지 ID가 확보되고, `fetch`로 각 페이지가 정상 조회됨
+
+### S3. 본문 작성
+
+- 스킬: `notion-travel-page`
+- 날짜별 페이지에 타임라인 · 스팟별 상세 · 이동 시간표 작성
+
+**게이트 G3 — 한글 무결성 검사 (필수)**: 작성 직후 각 페이지를 `fetch`로 되읽어 자모 분리·대체문자·이스케이프 잔재를 기계 탐지하고, **각 페이지를 실제로 읽어 어색한 단어를 직접 확인**한다. 기계 검사만으로는 "열로스톤", "통밥집" 같은 **의미는 파손되었지만 형태는 정상 한글인 오류**를 못 잡는다.
+
+실패 시: 해당 페이지를 `replace_content`로 재작성 (한글 직접 입력)
+
+### S4. 스톡 이미지
+
+- 스킬: `travel-image-search` → `travel-image-validator`
+- 정책: `policies.min_images_per_spot` (기본 2장), 소제목마다 별도 이미지
+
+**게이트 G4**: 모든 스팟 최소 장수 충족, 모든 이미지 URL HTTP 200 (curl 검증)
+
+### S5. AI 일러스트
+
+- 스킬: `travel-illustration`
+- 산출: 전체 여정 요약 1장 + 날짜별 N장
+
+**게이트 G5**: 요약 1장 + 날짜별 전량이 노션 파일 업로드 ID를 갖고 페이지에 삽입됨
+
+### S6. 지도 연동
+
+- 스킬: `travel-maps-integration`
+
+**게이트 G6**: 모든 날짜 페이지에 지도 섹션 존재, KML이 XML 파싱 통과, 좌표가 바운딩 박스 안에 있음
+
+### S7. 콘텐츠 보강
+
+- 스킬: `travel-content-enrichment`, `travel-spot-reviews`, `travel-packing-list`, `travel-emergency-info`, `travel-transport-info`
+
+**게이트 G7**: 모든 스팟에 관람 포인트 · 역사 · 주차 · 추천 시간대 · 팁이 존재
+
+### S7.5. 지출 관리 구축
+
+- 스킬: `travel-expense-db`
+- 확정 예약은 실제 금액·확인번호로, 나머지는 예상/미확정으로 채운다
+- 반환된 data source ID를 `state.json`의 `expense_data_source_id`에 기록
+
+여행 중·후에 `travel-receipt-ocr`이 이 데이터베이스에 영수증을 쌓는다.
+
+### S8. 종합 감사 루프 ★
+
+- 스킬: `travel-quality-loop`
+- **여기서 통과할 때까지 S3~S7로 되돌아간다.** 최대 3회 순환.
+
+### S9. 산출물 내보내기
+
+- 스킬: `travel-calendar-sync`, `travel-presentation`, xlsx 스킬
+- `report.md` 작성 후 사용자에게 파일 전달
+
+---
+
+## 워크 큐 루프
 
 ```
-"계획만 정리해줘"       → Phase 0
-"리서치만"             → Phase 1
-"노션만 만들어줘"       → Phase 0(스냅샷 확인) + 2
-"지도 연동해줘"         → Phase 2.5
-"이미지만 넣어줘"       → Phase 3 + 3.5
-"예습 자료 만들어줘"    → Phase 4.7
-"캘린더만"             → Phase 5
-"PPT만"                → Phase 6
+while work_queue 비어있지 않음 and 전체_순환 < 3:
+    item = work_queue.pop()
+    if item.attempts >= 3:
+        failures.append(item)
+        continue
+    item.attempts += 1
+    해당 단계 재실행(item)
+    게이트 재검증
+    if 통과: state 갱신
+    else:    work_queue.push(item)
 ```
 
-## 완료 리포트 (두괄식 한국어)
+**3회 실패한 항목은 조용히 버리지 않는다.** `report.md`의 "수동 확인 필요" 절에 항목·사유·시도 이력을 남긴다.
+
+---
+
+## 치명적 규칙 (위반 시 전면 재작업)
+
+1. **한글을 유니코드 이스케이프로 쓰지 않는다.** 항상 문자 그대로 입력한다
+2. 노션 마크다운 이스케이프: `~`는 `\~`, `$`는 `\$`
+3. **요일은 계산한다, 추론하지 않는다.** `trip-brief.json`의 `day_map`만 사용
+4. `replace_content` + `allow_deleting_content: true` 는 하위 페이지를 아카이브한다. 메인 페이지에는 쓰지 않는다
+5. AI 일러스트 ≠ 스톡 사진. 둘 다 만든다
+6. 이미지 URL은 반드시 curl로 검증한다
+7. 브라우저 자동화는 1순위가 아니다. 2회 실패하면 즉시 포기하고 대안으로 전환한다
+
+---
+
+## 부분 실행
+
+| 사용자 신호 | 실행 |
+|---|---|
+| "리서치만" | S1 |
+| "노션만 만들어줘" | S2~S3 |
+| "사진 다시 넣어줘" | S4 |
+| "그림 생성" | S5 |
+| "지도 붙여줘" | S6 |
+| "전체 점검해줘" | S8 |
+| "비용 정리해줘" | S7.5 |
+| "영수증 넣어줘" | `travel-receipt-ocr` (파이프라인 밖) |
+| "이어서 해줘" | `state.json` 읽고 `pending`부터 재개 |
+| "Day 5만 다시" | 해당 항목만 큐에 넣고 S3~S7 |
+
+## 완료 리포트 형식
 
 ```markdown
 ## ✅ {여행명} 가이드 생성 완료
-- 📄 Notion: [메인 페이지]({URL}) + 서브 {N}개 (Day {N} · 예습 2 · 유틸 {N})
-- 🖼️ 이미지: {N}장 (전량 시각 검증, 첨부 업로드 {N} / embed {N})
-- 🗺️ 지도: 스팟 링크 {N}개 + Day 경로 {N}개, 이동시간 검증 {N}건
-- 📅 캘린더: {N}개 이벤트 ({방식})
-- 📊 PPT: {파일명} ({N}장)
-### 수동 확인 필요
-- {항목}
-```
 
-리포트 후: 메모리(`user_travel_*`) 갱신 + 산출물 파일은 present_files/SendUserFile로 전달.
+### 산출물
+- 📄 노션 메인: {URL}
+- 📝 날짜별 페이지 {N}개 · 참고 자료 {M}개
+- 📍 스팟 {K}개
+- 🖼️ 스톡 이미지 {N}개
+- 🎨 AI 일러스트 {N}장
+- 🗺️ KML / CSV / routes.md
+
+### 게이트 통과 현황
+| 단계 | 결과 | 재시도 |
+|---|---|---|
+
+### ⚠️ 수동 확인 필요
+- (3회 실패 항목 · 사유 · 대안)
+
+### 📌 적용한 가정
+- (무인 실행 시 사용자 확인 없이 채택한 기본값)
+```
