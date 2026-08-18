@@ -12,23 +12,6 @@ description: 항공편, 렌트카, 기차 등 교통 예약 확인 자료를 파
 - 사용자가 **업로드한 자료**(이메일, PDF, 스크린샷)에서 교통 정보를 자동 추출합니다.
 - 추출된 정보를 **구조화된 형태**로 Notion 페이지에 반영합니다.
 - 파이프라인 초기 단계에서 교통 자료를 수집하여 이후 단계에 활용합니다.
-- 파싱 결과는 사용자 확인(pending → confirm) 후에만 캘린더·Notion에 반영합니다.
-
-## 표준 파싱 스키마: schema.org JSON-LD (v3 — TREK 차용)
-
-모든 예약 파싱 결과는 schema.org Reservation 타입으로 정규화한다. 표준 어휘라 파싱 정확도가 높고, 이후 캘린더/Notion 변환 매퍼를 재사용할 수 있다:
-
-```
-파싱 지시문: "Extract every travel reservation from the document as schema.org JSON-LD.
-Output only {\"reservations\": [...]}. Use @type: FlightReservation, LodgingReservation,
-RentalCarReservation, TrainReservation, BusReservation, FoodEstablishmentReservation,
-EventReservation. Nest details under reservationFor. Times in ISO 8601 local time.
-Always include reservationNumber. For round trips, extract every segment."
-```
-
-- 왕복 항공은 구간별로 각각 1개 Reservation
-- 시간은 반드시 **현지 시간 + 타임존 명시** (캘린더 등록 오류의 최다 원인) — 공항 IATA 코드로 타임존을 확정한 뒤 이벤트를 만든다
-- 결과 저장: `/tmp/{여행지}_transport.json` (schema.org 구조 그대로)
 
 ## 지원 교통 수단
 
