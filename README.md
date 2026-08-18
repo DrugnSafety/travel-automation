@@ -1,67 +1,220 @@
-# Travel Automation Plugin v3.1
+# Travel Automation v3.2
 
-여행 계획 하나(자료가 없으면 대화로)로 **Notion 가이드북 + 구글맵 연계 + 가족 예습 자료 + Google Calendar + PowerPoint**를 자동 생성하는 풀 패키지 여행 자동화 플러그인.
+여행 일정표 하나로 **Notion 가이드북 · 구글맵 연동 · AI 일러스트 · Google Calendar · PowerPoint · 지출 관리**까지 만드는 Claude Code / Cowork 플러그인.
 
-## v3.0 핵심 변경 — 문제 해결 중심
+상태 기반 하네스와 품질 검증 루프를 도입해, 각 단계가 게이트를 통과해야만 다음으로 넘어가고 실패 항목은 자동 재시도됩니다. 최신 변경 이력은 [UPDATES.md](UPDATES.md)를 참고하세요.
 
-| 문제 (v2) | 해결 (v3) |
-|-----------|-----------|
-| 노션 이미지가 자꾸 깨짐 | ① Pexels ID 추측 조립 폐지 ② Wikipedia/Commons **직링크 API** 사용 ③ `notion-create-attachment` **첨부 업로드**로 Notion 호스팅 (외부 서버 무관) |
-| 관련 없는 이미지 삽입 | 삽입 전 **모든 이미지를 다운로드해 Read로 직접 열어 시각 검증** (그 장소가 맞는지 확인) + validator에 관련성 검증 추가 |
-| 사용자 계획/파일 활용 미흡 | 신규 `travel-plan-intake` — 파일·텍스트·지도 리스트 URL 파싱, 없으면 대화형 인터뷰 후 계획 창조 |
-| Google Maps 연계 부족 | 신규 `travel-maps-integration` — 스팟 딥링크·Day 경로 링크·이동시간 검증·네이버/구글맵 리스트 임포트·날씨 |
-| 예습용 스팟 상세 부족 | 신규 `travel-study-guide` — 🎓 아이 코너(스토리텔링·퀴즈·Junior Ranger) + 👩 부모 브리핑 (스팟당 800자+) |
-| AI 이미지 스타일 없음 | 신규 `travel-image-generator` — 노션 프롬프트 DB 기반 **19종 스타일 라이브러리**, 사용자에게 스타일 질문 후 생성 |
+## 설치
 
-## 스킬 (17개)
-
-| # | 스킬 | 설명 | v3 |
-|---|------|------|----|
-| 1 | travel-plan-intake | 계획 파싱/대화형 창조 → 표준 plan JSON | 🆕 |
-| 2 | travel-transport-info | 예약 자료 schema.org 파싱 | ⬆️ |
-| 3 | travel-research | 스팟별 6카테고리 리서치 | |
-| 4 | notion-travel-page | 사용자 노션 템플릿 구조로 3계층 페이지 생성 | ⬆️ |
-| 5 | travel-maps-integration | 구글맵 딥링크·경로·리스트 임포트·날씨 | 🆕 |
-| 6 | travel-image-search | 위키피디아 1순위 + 시각 검증 + 첨부 업로드 | ⬆️ |
-| 7 | travel-image-generator | gpt-image-2 직접 생성 (19종 스타일 + 노션 프롬프트 22행 카탈로그) | 🆕 |
-| 8 | travel-image-validator | 접근성 + 관련성 2중 검증 | ⬆️ |
-| 9 | travel-content-enrichment | 6가지 상세 블록 보강 | |
-| 10 | travel-spot-reviews | 리뷰 기반 팁·주의사항 | |
-| 11 | travel-study-guide | 가족 예습 가이드 (아이+부모) | 🆕 |
-| 12 | travel-calendar-sync | 캘린더 등록 + 지도 링크 + ICS 폴백 | ⬆️ |
-| 13 | travel-presentation | PPT 생성 (Codex 기획 프롬프트 연동) | ⬆️ |
-| 14 | travel-packing-list | 짐 싸기 체크리스트 | |
-| 15 | travel-emergency-info | 긴급 정보 카드 | |
-| 16 | travel-notion-export | 노션 가이드북(메인+서브페이지)을 마크다운 변환 후 GitHub push/commit | 🆕 v3.1 |
-| 17 | travel-orchestrator | 12단계 파이프라인 + 스냅샷 JSON | ⬆️ |
-
-## 슬래시 커맨드
-- `/new-trip` — 전체 파이프라인 (자료 없이도 시작 가능)
-- `/trip-checklist` — 짐 싸기 체크리스트
-- `/trip-budget` — 여행 예산
-
-## 파이프라인 (v3)
+이 저장소 자체가 `.claude-plugin/marketplace.json`을 포함한 단일 플러그인 마켓플레이스입니다. Claude Code(또는 Cowork)에서:
 
 ```
-Intake → 스타일질문 → Transport → Research → Notion → Maps →
-Images(실사) → [Images(AI)] → Validate → Enrich → Reviews →
-StudyGuide → Calendar → PPT → 리포트
+/plugin marketplace add DrugnSafety/travel-automation
+/plugin install travel-automation@travel-automation
 ```
 
-모든 단계는 `/tmp/{여행지}_summary.json` 스냅샷으로 연결 — 부분 실행·재실행 시 완료 단계 자동 스킵.
+설치 요약에 `Run /reload-plugins to activate.`가 표시되면 `/reload-plugins`를 실행해 스킬을 활성화하세요.
 
-## GitHub 백업 (v3.1)
+### 사전 준비
 
-`travel-notion-export`로 완성된 노션 가이드북을 마크다운으로 변환해 GitHub에 백업할 수 있다. **플러그인 코드(이 리포)는 public, 여행 데이터(가족·자녀 정보 포함)는 반드시 별도 private 리포**로 분리한다 — 자세한 원칙은 스킬 문서 참조.
+- **필수 MCP**: Notion (가이드북 생성 대상)
+- **플러그인 내장 MCP** (`.mcp.json`에 정의, 설치 시 자동 연결): Kiwi(항공), Trivago(숙박), Google Maps(장소·리뷰), LILT(번역)
+- **권장 추가 연결**: PlayMCP NaverSearch(한국어 리서치, `travel-naver-search`가 사실상 필수로 사용), Google Calendar, TomTom Maps, Tripadvisor, Felt Maps — `SearchMcpRegistry`로 찾아 연결하면 됩니다
+- **이미지 생성**: OpenAI `gpt-image-2` API 키를 `~/.config/travel-automation/openai.env`에 설정 (플러그인 파일에 키를 포함하지 않음)
 
-## 외부 연동
+### 빠르게 시작하기
 
-- **MCP**: Notion(필수), Google Calendar, Kiwi, Trivago, LILT, Google Maps(선택)
-- **무키 API** (curl 직접 호출): Wikipedia REST, Wikimedia Commons, Open-Meteo(날씨), Nominatim/Overpass(OSM), 네이버지도 북마크 공유, Google Maps Universal URL
-- **이미지 생성**: OpenAI `gpt-image-2` — API 키는 `~/.config/travel-automation/openai.env` (플러그인 파일에 키 미포함)
-- **참고 레퍼런스**: mauriceboe/TREK (지도 리스트 임포트·schema.org 파싱·스냅샷 패턴 차용), 사용자 노션 여행 템플릿 + 이미지 프롬프트 DB
+```
+/new-trip <여행 일정 설명 또는 파일>
+```
 
-## 이미지 철칙 (v3)
+자료가 없어도 대화형으로 시작할 수 있습니다. `travel-intake`가 먼저 실행되어 6개 블록 질문으로 `trip-brief.json`을 만들고, 이후 전 단계가 이를 참조합니다.
 
-> **단 한 장도 눈으로 확인하지 않은 이미지를 Notion에 넣지 않는다.**
-> 다운로드 → Read로 시각 검증 → 첨부 업로드 → 삽입 → 재검증.
+## v2에서 무엇이 바뀌었나
+
+v2는 Phase 0 → Phase 6의 일직선 파이프라인이었습니다. 중간 단계가 부분 실패해도 감지되지 않고 다음으로 넘어가, 이미지가 없는 페이지나 한글이 깨진 페이지가 "완료"로 보고되는 문제가 있었습니다.
+
+v3의 변경점은 셋입니다.
+
+**1. 상태 기반 하네스** — `state.json`에 단계별 진행 상황이 남아 중단·재개가 가능합니다.
+
+**2. 게이트** — 각 단계는 검증을 통과해야만 완료 처리됩니다. 통과하지 못한 항목은 워크 큐에 남아 최대 3회 자동 재시도되고, 그래도 실패하면 리포트의 "수동 확인 필요"에 기록됩니다.
+
+**3. 인테이크 선행** — 재작업을 유발하던 전제 조건을 시작 전에 전부 확정합니다.
+
+```
+trip-brief.json (SSOT)
+        │
+   ┌────▼──────────────────────────────────────┐
+   │  단계 실행 → 게이트 → 통과? → state 갱신   │
+   │       ▲                  │ 실패            │
+   │       └── work_queue ◀───┘  (최대 3회)     │
+   └───────────────────────────────────────────┘
+```
+
+## 인테이크가 미리 잡는 것
+
+과거 운영에서 실제로 전면 재작업을 유발한 항목들입니다.
+
+| 사고 | 실제로 벌어진 일 | v3의 처리 |
+|---|---|---|
+| 요일 오산 | 전 일정 요일이 하루씩 밀림 | 계산해서 사용자에게 확인받음 (추론 금지) |
+| 차량 제약 미확인 | RV 통과 불가 도로를 일정에 넣음 | 터널·길이 제한을 직접 조사해 일정에 반영 |
+| 숙소 위치 오해 | 공원 밖 캠핑장을 공원 내로 표기 | "공원 내/밖"을 모든 숙소의 필수 접두어로 |
+| 예약처 분산 | 한 공원 안에서 운영사가 3곳 | 캠핑장별 예약처·전화번호 개별 조사 |
+| 이미지 부족 | 스팟당 1장 → 2장으로 재작업 | 최소 장수를 정책값으로 강제 |
+| 일러스트 오해 | 스톡 대체재로 잘못 이해해 전량 재생성 | 두 산출물의 용도를 명시적으로 분리 |
+| 한글 깨짐 | 유니코드 이스케이프로 전 페이지 파손 | 작성 규칙 + 무결성 게이트 |
+| 지도 부재 | 완성 후 요청 → 11개 페이지 재편집 | 초기 질문에서 연동 범위 확정 |
+
+## 스킬 (21개)
+
+### 시작 · 오케스트레이션
+
+| 스킬 | 역할 |
+|---|---|
+| `travel-intake` | 6개 블록 질문으로 `trip-brief.json` 생성. **모든 작업의 출발점** |
+| `travel-orchestrator` | 하네스 + 게이트 + 워크 큐 구조로 전체 파이프라인 실행 |
+| `travel-quality-loop` | 12개 체크 감사 → 자동 수정 → 재검증 (최대 3회) |
+
+### 리서치 · 소스
+
+| 스킬 | 역할 |
+|---|---|
+| `travel-research` | 스팟별 역사·문화·팁·맛집·비용 등 6카테고리 리서치 |
+| `travel-naver-search` | 네이버 블로그·카페·지식iN 한국인 관점 리서치 |
+| `travel-url-ingest` | 네이버 카페·블로그 URL 본문 확보 (6단 폴백) |
+| `travel-external-sources` | 정보 유형별 소스 라우팅과 신뢰도 규칙 |
+| `travel-spot-reviews` | 리뷰 기반 팁·주의사항 |
+| `travel-transport-info` | 예약 자료(schema.org) 파싱 |
+
+### 노션 생성 · 보강
+
+| 스킬 | 역할 |
+|---|---|
+| `notion-travel-page` | 사용자 노션 템플릿 구조로 3계층 페이지 생성 |
+| `travel-content-enrichment` | 6가지 상세 블록 보강 |
+
+### 이미지
+
+| 스킬 | 역할 |
+|---|---|
+| `travel-image-search` | 위키피디아 1순위 + 시각 검증 + 첨부 업로드 |
+| `travel-illustration` | gpt-image-2 여정 요약 + 날짜별 삽화 (스톡 사진과 별개 산출물) |
+| `travel-image-validator` | 접근성 + 관련성 2중 검증 |
+
+### 지도
+
+| 스킬 | 역할 |
+|---|---|
+| `travel-maps-integration` | 지도 임베드·내비 딥링크·좌표 링크·KML/CSV |
+
+### 산출물
+
+| 스킬 | 역할 |
+|---|---|
+| `travel-calendar-sync` | 캘린더 등록 + 지도 링크 + ICS 폴백 |
+| `travel-presentation` | PPT 생성 |
+| `travel-packing-list` | 짐 싸기 체크리스트 |
+| `travel-emergency-info` | 긴급 정보 카드 |
+
+### 지출 관리
+
+| 스킬 | 역할 |
+|---|---|
+| `travel-expense-db` | 지출 관리 DB + 경비 총괄 페이지 생성 |
+| `travel-receipt-ocr` | 영수증 사진·PDF를 읽어 지출 DB에 자동 등록 |
+
+## 명령어
+
+| 명령 | 동작 |
+|---|---|
+| `/new-trip` | 인테이크 → 하네스 전체 실행 |
+| `/trip-audit` | 품질 루프만 실행 (점검·수정) |
+| `/trip-map` | 지도 연동만 실행 |
+| `/trip-images` | 사진·일러스트 보강만 실행 |
+| `/trip-expense` | 지출 DB + 경비 총괄 페이지 생성 |
+| `/trip-receipt` | 영수증 읽어 지출 DB에 등록 |
+| `/trip-budget` | 예산 산출 (계획 단계 추정) |
+| `/trip-checklist` | 예약·짐싸기 체크리스트 |
+
+## 구글맵 연동에 관하여
+
+**구글은 개인 "저장됨(Saved)" 목록에 외부에서 장소를 추가하는 공개 API를 제공하지 않습니다.** Places API는 읽기 전용입니다. 브라우저 자동화로 별표를 누르는 방식은 봇 차단 때문에 실무에서 실패합니다.
+
+이 플러그인은 **Google My Maps + KML 임포트**를 표준 경로로 삼습니다. PC 브라우저에서 3분이면 수십 개 장소를 Day별 폴더 구조로 한 번에 올릴 수 있고, 임포트한 지도는 휴대폰 구글맵 앱의 "저장됨 → 지도" 탭에 나타납니다.
+
+이 제약은 작업이 끝난 뒤가 아니라 **초기 질문 단계에서 사용자에게 알립니다.**
+
+## 계획에서 정산까지
+
+여행 자동화가 출발 전에서 끝나면 절반입니다. 실제로는 다녀온 뒤 "얼마 썼지"가 남습니다.
+
+```
+travel-expense-db      →  💵 지출 관리 DB  +  🧾 경비 총괄 페이지
+        │                        ▲
+        │                        │  행 추가 + 영수증 원본 첨부
+        ▼                        │
+travel-receipt-ocr  ──  영수증 사진 → 추출 → 검증 → 등록 → 대사
+```
+
+**OCR을 외부 서비스에 맡기지 않습니다.** 영수증은 Claude가 이미지를 직접 보고 읽습니다. 스크립트는 사람이 눈으로 하면 틀리는 것만 맡습니다 — EXIF 회전 보정, 리사이즈, PDF 페이지 분할, 형식 검증, 중복 판정, 예상 대비 대사.
+
+실제 운영에서 반복적으로 틀렸던 지점을 스킬에 명문화했습니다.
+
+| 함정 | 실제로 벌어지는 일 |
+|---|---|
+| 미국 식당 영수증 | 인쇄된 TOTAL은 **팁 전 금액**입니다. 그대로 넣으면 15~20% 적게 잡힙니다 |
+| 마트 영수증 | 침구와 식료품이 한 장에 섞입니다. 한 행으로 뭉개면 분류가 무너집니다 |
+| 같은 영수증 재업로드 | 등록 전 현재 DB를 내려받지 않으면 중복이 그대로 들어갑니다 |
+| 환불성 보증금 | 총액에 넣으면 여행 경비가 실제보다 커 보입니다 |
+| 요약 페이지 | DB만 고치고 두면 두 숫자가 갈라집니다 |
+| 통신 두절 | 공원 안에서는 며칠씩 못 올립니다. 배치 처리를 전제로 설계했습니다 |
+
+## 커넥터
+
+`.mcp.json`에 정의된 것: Kiwi(항공), Trivago(숙박), Google Maps(장소·리뷰), LILT(번역).
+
+추가로 연결하면 좋은 것:
+
+- **PlayMCP NaverSearch** — 한국어 리서치. `travel-naver-search`가 전담하며 사실상 필수
+- **TomTom Maps** — 지오코딩·POI·경로. 좌표 정확도가 중요할 때
+- **Tripadvisor** — 리뷰 교차 검증
+- **Notion / Google Calendar** — 산출물 대상
+- **Felt Maps** — 공유 가능한 웹 지도
+
+## 작업 디렉터리
+
+```
+/tmp/{trip_slug}/
+├── trip-brief.json      입력 SSOT (오케스트레이터는 수정하지 않음)
+├── state.json           단계 상태·페이지 ID·재시도 카운터
+├── work_queue.json      실패 항목 큐
+├── research/            스팟별 리서치
+├── references/          첨부 URL·문서에서 추출한 구조화 데이터
+├── assets/              KML·CSV·이미지·프롬프트
+├── receipts/            정규화된 영수증 이미지 + manifest.json
+├── ledger.json          지출 DB 스냅샷 (중복 판정용)
+└── report.md            완료 리포트
+```
+
+## 치명적 규칙 요약
+
+1. **한글은 문자 그대로 입력한다.** 유니코드 이스케이프로 조립하면 파손된다
+2. **요일은 계산한다.** 추론하지 않는다
+3. **`replace_content` + `allow_deleting_content: true`는 하위 페이지를 아카이브한다.** 부모 페이지에 쓰지 않는다
+4. **노션 마크다운에서 `~`는 `\~`, `$`는 `\$`**
+5. **아이콘은 이모지, 커버는 URL** (아이콘에 URL을 넣으면 오류)
+6. **AI 일러스트와 스톡 사진은 별개 산출물**이다
+7. **이미지 URL은 삽입 전 curl로 검증한다**
+8. **브라우저 자동화는 2회 실패하면 포기하고 대안으로 전환한다**
+9. **영수증 등록 전 현재 DB를 내려받는다.** 중복 판정의 유일한 근거다
+10. **카드번호는 뒷 4자리만 남긴다**
+
+## 업데이트 내역
+
+- **v3.2.0** (2026-08-18) — GitHub 저장소를 로컬 최신 구조와 동기화, 설치 가이드 신설, 변경 이력을 `UPDATES.md`로 분리
+- **v3.1.0** — 상태 기반 하네스·게이트·워크 큐로 전면 재작성, 지출 관리(`travel-expense-db`)·영수증 OCR(`travel-receipt-ocr`) 추가
+- **v3.0.0** (2026-07-07, 최초 공개) — 노션 이미지 안정화, 구글맵 연동, 가족 예습 자료, AI 이미지 스타일 라이브러리 도입
+
+전체 상세 이력과 스킬 이름 변경/폐지 매핑은 [UPDATES.md](UPDATES.md)를 참고하세요.
