@@ -21,18 +21,19 @@
     "google-maps": {
       "type": "sse",
       "url": "https://mcp.composio.dev/partner/composio/google-maps/mcp",
-      "description": "Google Maps Place Details & Reviews — 관광지 리뷰, 평점, 영업시간. 연결 실패 시 travel-maps-integration 스킬의 무키 폴백(Universal Maps URL + 웹검색 + Chrome MCP) 사용",
+      "description": "Google Maps Place Details & Reviews — 관광지 리뷰, 평점, 영업시간, 근처 식당 검색. 개인 '저장됨' 목록에는 쓰기 불가(읽기 전용)",
       "tools": ["google_maps_search", "google_maps_place_details", "google_maps_nearby_search"]
+    },
+    "_recommended": {
+      "description": "아래는 이 플러그인이 직접 정의하지 않지만 연결하면 품질이 크게 올라가는 서버입니다. SearchMcpRegistry로 찾아 SuggestConnectors로 연결하세요.",
+      "servers": {
+        "PlayMCP (NaverSearch)": "한국어 블로그·카페·지식iN·뉴스·지역 검색. travel-naver-search 스킬이 전담하며 리서치 단계에서 필수입니다.",
+        "TomTom Maps": "지오코딩·POI 검색·경로 계산·실시간 교통. 좌표 정확도가 중요할 때 최선입니다.",
+        "Tripadvisor": "명소·호텔 리뷰. 한국 커뮤니티 정보와 교차 검증용입니다.",
+        "Notion": "가이드북 산출물의 기본 대상입니다.",
+        "Google Calendar": "일정 등록용입니다.",
+        "Felt Maps": "공유 가능한 웹 지도 생성(create_map)."
+      }
     }
-  },
-  "_keyless_apis": {
-    "_comment": "MCP가 아닌 무료·무키 REST API — 스킬들이 curl로 직접 호출한다 (TREK 검증 소스)",
-    "wikipedia_summary": "https://en.wikipedia.org/api/rest_v1/page/summary/{title} — 랜드마크 대표 이미지·요약 (travel-image-search 1순위)",
-    "wikimedia_commons": "https://commons.wikimedia.org/w/api.php — 랜드마크 추가 이미지 검색 (2순위)",
-    "open_meteo": "https://api.open-meteo.com/v1/forecast — 16일 날씨 예보 (travel-maps-integration)",
-    "nominatim_osm": "https://nominatim.openstreetmap.org/search — 지오코딩 폴백 (User-Agent 헤더 필수)",
-    "overpass_osm": "https://overpass-api.de/api/interpreter — 주변 POI 탐색 폴백",
-    "naver_bookmark_share": "https://pages.map.naver.com/save-pages/api/maps-bookmark/v3/shares/{id} — 네이버지도 저장 리스트 임포트",
-    "google_maps_universal_url": "https://www.google.com/maps/search/?api=1&query=... / /maps/dir/?api=1&... — 키 불필요 지도·경로 딥링크"
   }
 }
