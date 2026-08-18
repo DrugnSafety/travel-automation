@@ -1,120 +1,193 @@
 ---
 name: travel-image-search
-description: 여행 관광지의 실제 모습과 일치하는 이미지를 찾아 눈으로 검증한 뒤 Notion 페이지에 안정적으로 삽입합니다. Wikimedia Commons API로 랜드마크 정확도가 보장된 이미지를 우선 확보하고, 삽입 전 반드시 이미지를 직접 열어 관련성을 시각 확인하며, Notion 첨부 업로드로 핫링크 깨짐을 원천 차단합니다. 사용자가 여행 사진 추가, 노션 이미지 삽입, 관광지 사진 찾기, 이미지 교체 등을 요청할 때 이 스킬을 사용하세요.
+description: 여행지 사진을 검색해 노션 페이지에 삽입하는 스킬. Pexels CDN URL을 쓰되 용도별 권장 폭(커버 1600px, 본문 1280px, 표/썸네일 640px)을 적용하고, 스팟당 최소 2장 그리고 하위 소제목마다 별도 이미지를 배정한다. 삽입 전 모든 URL을 curl로 검증해 깨진 이미지를 걸러낸다. 사용자가 여행 사진 추가, 노션 이미지 삽입, 관광지 사진, 사진 2장 이상, 이미지 크기, 소제목별 사진, 사진 업데이트 등을 요청할 때 사용.
 ---
 
-# Travel Image Search v3
+# Travel Image Search — 크기 규격과 배치 밀도
 
-관광지 이미지를 **정확하게 찾고 → 눈으로 확인하고 → 깨지지 않게 삽입**하는 스킬.
+## 두 가지 핵심 규칙
 
-## v2의 실패 원인 (반복 금지)
+**1. 크기는 용도에 맞추다.** 모든 이미지를 1280px로 넣으면 표 안의 썸네일이 과하고 커버는 흘리다.
+**2. 밀도는 소제목 단위다.** "스팟당 2장"이 하한선이고, 스팟 안에 소제목이 있으면 소제목마다 별도 이미지를 붙인다.
 
-| v2 방식 | 문제 |
-|---------|------|
-| WebSearch 결과에서 Pexels 사진 ID를 추출해 CDN URL 조립 | 검색 결과에 실제 ID가 없어 **존재하지 않는 URL을 지어냄** → 404 깨짐 |
-| Pexels 스톡사진을 랜드마크 대표 이미지로 사용 | "Horseshoe Bend" 검색에 일반 협곡 사진이 걸림 → **관련 없는 이미지 삽입** |
-| 삽입 후에만 HTTP 검증 | URL이 살아있어도 **내용이 엉뚱한지는 아무도 확인 안 함** |
+---
 
-**철칙: 단 한 장도 눈으로 확인하지 않은 이미지를 Notion에 넣지 않는다.**
+## 이미지 소스
 
-## 이미지 소스 우선순위 (랜드마크 정확도 순)
+| 순위 | 소스 | 이유 |
+|---|---|---|
+| 1 | **Pexels CDN** | 노션에서 안정적으로 렌더링. 폭 파라미터 지원 |
+| 2 | Unsplash | Pexels에 없을 때 |
+| 3 | 공식 관광청·NPS 이미지 | 특정 명소에서 스톡보다 정확할 때 |
 
-### 1순위: Wikipedia REST API (특정 랜드마크의 대표 사진)
+**Wikipedia와 일반 구글 이미지는 쓰지 않는다.** 노션에서 자주 깨진다.
 
-문서 대표 이미지 = 그 장소가 맞다는 것이 커뮤니티에 의해 이미 검증된 사진.
-
-```bash
-curl -s "https://en.wikipedia.org/api/rest_v1/page/summary/{wiki_title}" \
-  | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('originalimage',{}).get('source',''))"
-```
-
-- `wiki_title`은 plan JSON의 `wiki_title` 필드 사용 (예: `Horseshoe_Bend_(Arizona)`)
-- 반환 URL은 `upload.wikimedia.org` 직링크 — **리다이렉트 없음, HTTP 200, image/jpeg 확인됨**
-- 원본이 너무 크면 URL의 `/{width}px-` 부분을 `1600px`로 조정
-
-### 2순위: Wikimedia Commons 검색 API (대표 사진 외 추가 컷)
-
-```bash
-curl -s "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch={장소명}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|mime|size&iiurlwidth=1280&format=json"
-```
-- 응답의 `thumburl`(1280px 직링크)을 사용. 파일명(title)에 장소명이 포함된 것 우선.
-
-### 3순위: 공식 기관 이미지
-- 미국 국립공원: NPS 공식 사이트(`nps.gov`) 이미지 — 퍼블릭 도메인
-- 관광청 공식 사이트 이미지
-
-### 4순위: Pexels/Unsplash (분위기 컷 전용)
-- **특정 랜드마크에는 사용 금지.** "사막 로드트립 풍경", "가족 캠핑" 같은 일반 분위기 컷에만 허용.
-- 반드시 실제 페이지를 WebFetch로 열어 진짜 사진 ID를 확인한 후 CDN URL 구성. ID 추측 조립 금지.
-
-### 5순위: AI 생성 이미지
-- 실사 확보 실패 시 또는 사용자가 특정 스타일을 원할 때 → **travel-image-generator** 스킬로 위임.
-
-## 필수 워크플로우: 다운로드 → 시각 검증 → 삽입
-
-### Step 1: 후보 확보 (스팟당 2~3장)
-위 우선순위로 후보 URL 확보 후 로컬 다운로드:
-```bash
-curl -sL --max-time 15 -o /tmp/img_check/{스팟명}_{n}.jpg "{URL}"
-```
-
-### Step 2: 시각 검증 (핵심 — 절대 생략 금지)
-다운로드한 이미지를 **Read 도구로 직접 열어 눈으로 확인**한다:
+### Pexels CDN URL 구성
 
 ```
-체크리스트 (하나라도 실패 시 해당 후보 탈락):
-□ 이 사진이 정말 {스팟명}인가? (지형·건물·표지판이 해당 장소 특징과 일치)
-□ 화질이 충분한가? (블러·저해상도·워터마크 없음)
-□ 대표 이미지로 적절한가? (공사장면·군중만 찍힌 컷·실내 잡사진 아님)
-□ 가족 가이드북에 적합한가?
+https://images.pexels.com/photos/{ID}/pexels-photo-{ID}.jpeg?auto=compress&cs=tinysrgb&w={폭}
 ```
 
-여러 후보 중 가장 좋은 1장을 선택. 전부 탈락하면 다음 순위 소스로 재시도 (최대 3회), 최종 실패 시 travel-image-generator로 넘기거나 이미지 없이 진행하고 보고서에 기록.
+`{ID}`는 Pexels 사진 페이지 URL 끝의 숫자다.
 
-### Step 3: Notion 삽입 — 첨부 업로드 우선
-
-**방법 1 (권장): Notion 첨부 업로드** — 외부 서버가 죽어도 안 깨짐
 ```
-notion-create-attachment {"filename": "{스팟명}.jpg", "source_url": "{검증된 직링크}"}
-→ 응답의 markdown_source (file-upload://...) 획득
-→ 1시간 내에 notion-update-page / notion-create-pages 콘텐츠에 배치:
-   ![{스팟명}](file-upload://...)
+https://www.pexels.com/photo/beautiful-grand-canyon-12345678/  →  ID = 12345678
 ```
-- source_url 조건: 리다이렉트 없음, 쿠키/헤더 불필요, 50MB 이하 — upload.wikimedia.org는 충족(검증됨)
-- 업로드 실패(용량·리다이렉트) 시 방법 2로 폴백
 
-**방법 2 (폴백): 외부 URL embed**
+---
+
+## 용도별 권장 폭
+
+| 위치 | 폭 | 이유 |
+|---|---|---|
+| **페이지 커버** | `w=1600` | 노션 커버는 가로로 넓게 잘린다. 1280은 확대되어 흘려진다 |
+| **본문 대표 이미지** | `w=1280` | 노션 본문 최대 폭에 맞는 기본값 |
+| **스팟 보조 이미지** | `w=1280` | 대표와 동일 |
+| **2단 배치 (컴럼)** | `w=800` | 절반 폭이므로 1280은 낙비다 |
+| **표 안 썸네일** | `w=640` | 표 셀은 좋다 |
+| **아이 교육용 도감 항목** | `w=1280` | 관찰이 목적이라 크게 |
+
+세로 사진(폭포·타워·나무)은 폭이 작아도 세로로 길어져 페이지를 지나치게 차지한다. **가급적 가로 구도를 고른다.** 세로가 불가피하면 `w=800`으로 줄인다.
+
+### 파일 크기 관리
+
+`auto=compress&cs=tinysrgb`는 항상 유지한다. 이 파라미터 없이는 원본이 내려와 노션 로딩이 느려진다.
+
+한 페이지에 이미지가 20장을 넘으면 모바일에서 눈에 띄게 느려진다. 그 이상이면 하위 페이지로 분리한다.
+
+---
+
+## 배치 밀도 규칙
+
+### 스팟당 최소 2장
+
+`trip-brief.json`의 `policies.min_images_per_spot`(기본 2)를 하한선으로 강제한다.
+
+두 장의 역할을 다르게 잡으면 정보량이 늘어난다.
+
+```
+1장차 — 전경/대표 컷: 그 장소가 무엇인지 한눈에
+2장차 — 디테일/체험 컷: 실제로 무엇을 하는 곳인지
+```
+
+예) 올드페이스풀 → ① 분출 장면 전경 ② 관람 데크에 앉은 사람들
+
+### 소제목마다 1장
+
+스팟 섹션 안에 `###` 소제목이 있으면 각 소제목에 이미지를 배정한다.
+
 ```markdown
-![{스팟명}]({검증된 직링크})
+## 📸 그랜드프리즘매틱
+![그랜드프리즘매틱 전경](...w=1280)     ← 스팟 대표
+
+### 전망대에서 보기
+![페어리폴스 전망대에서 본 온천](...w=1280)   ← 소제목 이미지
+
+### 보드워크 코스
+![보드워크](...w=1280)                        ← 소제목 이미지
 ```
-- 허용 도메인: `upload.wikimedia.org`, `images.pexels.com`, `images.unsplash.com`, `nps.gov`
-- 삽입 직전 curl HEAD로 `HTTP 200 + Content-Type: image/*` 재확인
 
-### Step 4: 캡션과 배치
-- 이미지 바로 아래 캡션: 장소명 + 특징 한 줄 (예: "홀슈벤드 — 콜로라도강이 270° 휘감는 절벽")
-- 배치 규칙: 메인 페이지 히어로 1장, Day 페이지 스팟당 1장 (스팟 제목 H2 바로 아래)
-- Notion 마크다운 이미지 문법과 위치는 notion-travel-page 템플릿 사양을 따름
+### 페이지 유형별 목표
 
-## 히어로 이미지 스타일 질문 (파이프라인 시작 시 1회)
+| 페이지 | 커버 | 본문 |
+|---|---|---|
+| 메인 | 1 | AI 일러스트 1 + 대표 사진 1~2 |
+| 날짜별 | 1 | AI 일러스트 1 + 스팟당 2장 이상 |
+| 동물·지질 도감 | 1 | 항목당 1~2장 |
+| 체크리스트·비용 | 1 | 2~3장 (분위기용) |
 
-메인 페이지 히어로와 표지성 이미지는 **작업 시작 전 AskUserQuestion으로 스타일을 확인**한다:
+**체크리스트나 비용 페이지에도 이미지를 넣는다.** 텍스트만 있는 페이지는 읽히지 않는다.
+
+---
+
+## 검색
+
+### 키워드 전략
+
+| 대상 | 쿼리 |
+|---|---|
+| 자연 경관 | `site:pexels.com {영문명} landscape` / `{영문명} scenic view` |
+| 지열·온천 | `site:pexels.com hot spring geyser {지역}` |
+| 야생동물 | `site:pexels.com {영문 종명} wildlife` |
+| 산·호수 | `site:pexels.com {영문명} mountain lake reflection` |
+| 도시·건축 | `site:pexels.com {영문명} architecture exterior` |
+| 캐핑·RV | `site:pexels.com rv camping campground` |
+| 음식 | `site:pexels.com {요리명} dish` |
+| 준비물·체크리스트 | `site:pexels.com packing suitcase` / `first aid kit` |
+
+**한글 장소명으로 검색하지 않는다.** Pexels는 영문 태그 기반이다.
+
+무명의 장소는 검색해도 안 나온다. 이럴 때 **상위 개념으로 대체**한다. 예) "알럼 크릭" → "bison herd grassland".
+
+### 선택 기준
+
+- 최소 폭 1280px 이상
+- 그 장소의 특징이 드러나는 대표적인 앵글
+- **여행 시기와 계절이 맞는 사진** — 8월 여행에 설경을 넣지 않는다
+- 특정 개인이 식별되는 인물 사진은 피한다
+- 과도한 보정(HDR·채도 과다)은 피한다
+
+---
+
+## 검증 — 삽입 전에 반드시
+
+**검색 결과에 나온 ID라도 404가 뜵다.** 삭제된 사진이 인덱스에 남아 있기 때문이다.
+
+```bash
+for id in 17816414 9186152 148182; do
+  url="https://images.pexels.com/photos/$id/pexels-photo-$id.jpeg?auto=compress&cs=tinysrgb&w=1280"
+  code=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 20 "$url")
+  echo "$id -> $code"
+done
+```
+
+200이 아니면 그 ID는 버리고 다른 후보를 찾는다.
+
+> ⚠️ **ID를 추측해서 만들지 않는다.** 임의의 7~8자리 숫자를 넣으면 200이 반환되지만 전혀 무관한 사진이다. 반드시 **검색으로 확인한 ID만** 쓔다.
+
+수집한 모든 URL을 `/tmp/{trip_slug}/assets/image_urls.txt`에 기록해 `travel-image-validator`와 품질 루프에서 재검증할 수 있게 한다.
+
+---
+
+## 노션 삽입
+
+```markdown
+![{설명적인 alt 텍스트}](https://images.pexels.com/photos/{ID}/pexels-photo-{ID}.jpeg?auto=compress&cs=tinysrgb&w=1280)
+```
+
+alt 텍스트는 장소명과 무엇이 찍혔는지를 한국어로 쓴다. 접근성이자, 나중에 어떤 사진인지 식별하는 단서다.
+
+### 커버 설정
 
 ```
-질문: "메인 페이지 대표 이미지는 어떤 스타일로 할까요?"
-옵션:
-  1. 실사 사진 (Wikipedia/공식 이미지) — 기본 권장
-  2. 시네마틱 AI 생성 (영화 포스터풍)
-  3. 수채화/일러스트 AI 생성 (가이드북 감성)
-  4. 미니멀 인포그래픽 AI 생성 (동선 지도 스타일)
+notion-update-page(cover="https://images.pexels.com/photos/{ID}/...&w=1600")
 ```
-- 2~4 선택 시 travel-image-generator 스킬로 위임 (스타일 값 전달)
-- 스팟별 본문 이미지는 항상 실사 우선 (예습 목적 — 실제 모습을 봐야 함)
 
-## 검증 기록
+> ⚠️ 아이콘에는 외부 이미지 URL을 넣지 않는다. `Invalid page icon URL` 오류가 난다. **아이콘은 이모지**, 커버는 URL을 쓴다.
 
-모든 삽입 이미지를 `/tmp/{여행지}_images.json`에 기록 — validator와 PPT 단계가 재사용:
+### 기존 이미지 교체
+
 ```json
-[{"spot": "Horseshoe Bend", "page_id": "...", "source": "wikipedia",
-  "url": "https://upload.wikimedia.org/...", "method": "attachment|embed",
-  "visual_check": "pass — 말굽형 협곡 확인", "local_copy": "/tmp/img_check/..."}]
+{"old_str": "![기존 alt](기존 URL)", "new_str": "![새 alt](새 URL)"}
 ```
+
+---
+
+## 배치 처리 순서
+
+1. 모든 스팟·소제목의 필요 이미지 목록 작성 (위치·용도·필요 폭 포함)
+2. 검색으로 후보 ID 수집 — **필요 수의 1.5배**를 모은다 (검증에서 탈락 대비)
+3. curl 일괄 검증 → 200만 남긴다
+4. 용도별 폭을 적용해 최종 URL 생성
+5. 노션 페이지별로 일괄 삽입
+6. `fetch`로 되읽어 실제 삽입 확인
+
+---
+
+## 게이트
+
+- 모든 스팟이 `min_images_per_spot` 이상
+- 모든 소제목에 이미지 배정
+- 모든 URL이 HTTP 200
+- 커버 이미지의 폭이 1600
+- 계절이 여행 시기와 어긋나는 사진이 없음
