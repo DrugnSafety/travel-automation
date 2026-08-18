@@ -20,7 +20,7 @@ description: 여행 일정을 Google Calendar에 자동으로 등록합니다. �
 ```
 제목: 🚗 {출발지} → {도착지} ({거리}, {소요시간})
 시간: {출발 시간} ~ {도착 시간}
-위치: {경로 or 공항}
+위치: {경로 또는 공항}
 설명: - 거리: {km}
       - 예상 소요: {시간}
       - 경유: {경유지 정보}
@@ -49,7 +49,7 @@ description: 여행 일정을 Google Calendar에 자동으로 등록합니다. �
 설명: - 추천 메뉴: {메뉴}
       - 가격대: ${범위}
       - 예약: {필요/불필요}
-색상: 토마토 (빨강)
+색상: 토마토 (빨간)
 ```
 
 ### 4. 숙소 이벤트 (🏨)
@@ -122,7 +122,7 @@ Day 2: 📍 관광1 → 📍 관광2 → 🍽️ 점심 → 📍 관광3 → �
 ### Step 5: 검증
 
 생성된 이벤트를 `gcal_list_events`로 확인하여:
-- 시간 겹침이 없는지
+- 시간 겠침이 없는지
 - 이동 시간이 충분한지
 - 모든 스팟이 등록되었는지
 
@@ -144,21 +144,3 @@ Day 2: 📍 관광1 → 📍 관광2 → 🍽️ 점심 → 📍 관광3 → �
 2. 변경된 부분만 `gcal_update_event`로 수정
 3. 삭제된 일정은 `gcal_delete_event`로 제거
 4. 새로 추가된 일정은 `gcal_create_event`로 생성
-
-## v3 추가 규칙
-
-### 이벤트 위치·설명에 구글맵 딥링크 포함
-- location 필드: 장소명+주소 문자열
-- description 첫 줄: travel-maps-integration이 생성한 지도 딥링크 (`https://www.google.com/maps/search/?api=1&query=...`) — 캘린더 알림에서 바로 내비 시작 가능
-- 이동 이벤트 description에는 Day 경로 딥링크 사용
-
-### 체크인 알림 이벤트
-항공편마다 출발 24시간 전 `✈️ {편명} 체크인 오픈` 30분 이벤트를 별도 생성 (transport JSON의 reservationNumber 포함).
-
-### ICS 폴백 (Google Calendar MCP 미연결/실패 시)
-1. 전체 일정을 iCalendar(.ics) 텍스트로 직접 생성 — `BEGIN:VCALENDAR`/`VEVENT`, `TZID` 명시, `UID`는 `{여행지}-{day}-{n}@travel-automation`
-2. `/tmp/{여행지}_calendar.ics`로 저장 후 파일 전달 → 사용자가 Google Calendar "가져오기"로 등록
-3. 등록 방법 안내 한 줄 첨부 (calendar.google.com → 설정 → 가져오기/내보내기)
-
-### 등록 전 확인 원칙 (필수)
-파싱·생성한 이벤트 목록을 테이블로 먼저 보여주고 사용자 확인 후 일괄 등록한다. 동일 기간 기존 이벤트 발견 시 덮어쓰기/병합/취소 선택 필수 (임의 삭제 금지).
