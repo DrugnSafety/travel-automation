@@ -35,7 +35,7 @@
 
 | 산출물 | 내용 |
 |---|---|
-| 📘 Notion 가이드북 | 메인 페이지 → 날짜별 상세 페이지 → 참고 자료(체크리스트·긴급 정보·비용·아이용 도감 등) |
+| 📘 Notion 가이드북 | 메인 페이지 → 날짜별 상세 페이지 → 참고 자료(체크리스트·긴급 정보·비용·아이 교육용 도감 등) |
 | 🗺️ 지도 | 날짜별 임베드 지도, 모바일 내비 딥링크, 장소별 좌표 링크 표, Google My Maps용 KML·CSV |
 | 🖼️ 사진·일러스트 | 스팟당 2장 이상 스톡 사진(Pexels) + gpt-image-2 여정 요약·날짜별 일러스트(선택) |
 | 📅 캘린더 | 관광·이동·식사·체크인 일정을 Google Calendar에 등록 |
@@ -88,11 +88,11 @@ claude plugin install travel-automation@travel-automation
 
 **필수**
 
-- **Notion 커넥터** — 가이드북과 지출 DB를 만드는 곳입니다.
+- **Notion 커넥터** — 가이드북과 지출 DB를 만들 때 씁니다.
 
 **강력 권장**
 
-- **PlayMCP NaverSearch** — 한국어 블로그·카페·지식iN 리서치(`travel-naver-search`)에 씁니다. 없으면 리서치 게이트(스팟마다 네이버 출처 1건 이상)를 통과하지 못해 해당 항목이 "수동 확인 필요"로 보고됩니다.
+- **PlayMCP NaverSearch** — 한국어 블로그·카페·지식iN 리서치(`travel-naver-search`)에 씁니다. 없으면 한국어 후기 수집을 건너뛰거나 웹 검색으로 대신하며, 네이버 출처를 채우지 못한 스팟은 리서치 게이트에서 "수동 확인 필요"로 남을 수 있습니다.
 
 **선택** — 없으면 해당 단계만 건너뜁니다.
 
@@ -101,7 +101,7 @@ claude plugin install travel-automation@travel-automation
 | Google Calendar 커넥터 | 일정 등록 (`travel-calendar-sync`) |
 | PowerPoint MCP 또는 Node.js + `pptxgenjs` | PPT 생성 (`travel-presentation`) |
 | OpenAI API 키 + 이미지 생성 도구 | AI 일러스트 (`travel-illustration`) — [설정](#ai-일러스트-설정-선택) |
-| Python 3 + Pillow · pillow-heif · poppler-utils | 영수증 정규화 (`receipt_intake.py`). 없으면 원본 이미지를 그대로 씁니다 |
+| Python 3 + Pillow · pillow-heif · poppler-utils | 영수증 정규화 (`receipt_intake.py`). Pillow가 없으면 JPG·PNG는 원본 그대로 쓰고, HEIC(pillow-heif 필요)·PDF(poppler-utils 필요)는 처리하지 못해 경고만 남깁니다 |
 
 > 커넥터가 없다고 작업이 멈추지는 않습니다. 각 스킬은 웹 검색으로 대신하고, "이 커넥터를 연결하면 더 정확해진다"고 한 번 안내합니다.
 
@@ -136,7 +136,7 @@ chmod 600 ~/.config/gpt-image/.env
 ```
 
 - 실제 생성은 `moai-media` 플러그인의 `media-gpt-image2-builder`·`image-gen` 스킬이 있으면 그쪽에 맡기고, 없으면 `gpt-image-prompt-picker` 스킬의 `generate.py`를 호출합니다. **두 도구 모두 이 저장소에 들어 있지 않습니다.** 준비되지 않았다면 일러스트를 생략하세요.
-- 이미지 생성은 유료입니다. 플러그인은 1장으로 방향을 먼저 확인받은 뒤 나머지를 2·3장씩 나눠 만듭니다.
+- 이미지 생성은 유료입니다. 플러그인은 1장으로 방향을 먼저 확인받은 뒤 나머지를 두세 장씩 나눠 만듭니다.
 - API 키를 대화창에 붙여넣지 마세요. 붙여넣었다면 그 키는 폐기하고 새로 발급하세요.
 
 ---
@@ -300,7 +300,7 @@ travel-receipt-ocr  ──  영수증 사진 → 추출 → 검증 → 등록 �
 
 ## 작업 디렉터리와 저장소 구조
 
-실행 중 생성되는 파일은 `/tmp/{trip_slug}/` 아래에 모입니다.
+주요 상태 파일은 `/tmp/{trip_slug}/` 아래에 모입니다. 일부 보조 스킬은 `/tmp/{여행지}_*.json` 같은 별도 경로를 쓰고, PPT는 사용자 작업 폴더에 저장합니다.
 
 ```
 /tmp/{trip_slug}/
@@ -366,7 +366,7 @@ travel-automation/
 - **v3.2.1** (2026-10-05) — GitHub 공개본을 실사용 최종본과 일치시킴: 누락됐던 스킬 3종(`travel-quality-loop`, `travel-receipt-ocr`, `travel-url-ingest`)과 스크립트 2종 추가, 한글 파손 교정, 폐지 스텁 4종 삭제, `.mcp.json` 검증 오류 수정, 예시 데이터 일반화, README 전면 개편
 - **v3.2.0** (2026-08-18) — 설치 가이드 신설, 변경 이력을 `UPDATES.md`로 분리, 저장소 동기화(일부 누락 — v3.2.1에서 보완)
 - **v3.1.0** — 상태 기반 하네스·게이트·워크 큐로 전면 재작성, 지출 관리·영수증 등록 추가 (당시 GitHub에는 미반영)
-- **최초 공개** (2026-07-07) — 이전 구조(스킬 17개 + 명령어 3개)로 첫 공개
+- **최초 공개** (2026-07-07) — 이전 구조(스킬 17개 + 명령어 3개)
 
 전체 이력과 스킬 이름 변경·폐지 매핑은 [UPDATES.md](UPDATES.md)에 있습니다.
 
