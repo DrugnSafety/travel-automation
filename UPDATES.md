@@ -21,6 +21,7 @@
   - README 전면 개편: Claude 앱·Claude Code 설치 방법, 사전 준비(필수·권장·선택), 단계별 게이트, 알려진 제약, 영문 요약
   - 실제 동작과 다르던 설명 정정: 사진 소스(Wikipedia → Pexels 우선), 일러스트 API 키 경로(`~/.config/gpt-image/.env`), 캘린더 ICS 폴백 문구 삭제, 번들 커넥터 목록
   - `.gitignore` 추가
+- **라이선스** — MIT (`LICENSE`, `plugin.json`의 `license` 필드)
 
 ## v3.2.0 — 2026-08-18
 

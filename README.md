@@ -9,6 +9,7 @@
 | 상태 | 작성자가 실제 여행 준비에 쓰는 최종본과 같은 구성 (예시값 일반화, 커넥터 설정 수정만 다름) |
 | 산출물 언어 | 한국어 (네이버 블로그·카페 기반 한국인 여행자 관점 리서치 포함) |
 | 변경 이력 | [UPDATES.md](UPDATES.md) |
+| 라이선스 | [MIT](LICENSE) |
 
 ---
 
@@ -27,7 +28,8 @@
 11. [치명적 규칙 요약](#치명적-규칙-요약)
 12. [업데이트 내역](#업데이트-내역)
 13. [문의와 기여](#문의와-기여)
-14. [English summary](#english-summary)
+14. [라이선스](#라이선스)
+15. [English summary](#english-summary)
 
 ---
 
@@ -327,6 +329,7 @@ travel-automation/
 ├── skills/                  스킬 21개 (*/SKILL.md)
 │   ├── travel-maps-integration/scripts/build_map_assets.py
 │   └── travel-receipt-ocr/scripts/receipt_intake.py
+├── LICENSE                  MIT
 ├── README.md
 └── UPDATES.md               버전별 상세 변경 이력
 ```
@@ -380,6 +383,12 @@ travel-automation/
 
 ---
 
+## 라이선스
+
+[MIT License](LICENSE) — 출처(저작권 표시와 라이선스 문구)를 유지하면 자유롭게 사용·수정·재배포할 수 있습니다.
+
+---
+
 ## English summary
 
 <details>
@@ -393,6 +402,6 @@ travel-automation/
 - **Requires:** a Notion connector. Strongly recommended: PlayMCP NaverSearch (Korean community research). Optional: Google Calendar, PowerPoint MCP or pptxgenjs, an OpenAI API key plus an image tool for illustrations.
 - **Design:** a stateful harness where every stage must pass a gate; failures go to a work queue with up to three retries, and anything still failing is reported for manual review.
 
-Outputs and research are tuned for Korean-speaking travelers.
+Outputs and research are tuned for Korean-speaking travelers. Licensed under the [MIT License](LICENSE).
 
 </details>

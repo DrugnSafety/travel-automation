@@ -7,6 +7,7 @@
   },
   "homepage": "https://github.com/DrugnSafety/travel-automation",
   "repository": "https://github.com/DrugnSafety/travel-automation",
+  "license": "MIT",
   "keywords": [
     "travel",
     "notion",
