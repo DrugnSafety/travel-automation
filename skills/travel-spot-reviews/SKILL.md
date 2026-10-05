@@ -86,7 +86,7 @@ WebSearch 쿼리 전략:
 ### 방법 2: Google Maps MCP (있으면 활용)
 
 ```
-.mcp.json에 Google Maps MCP가 설정된 경우:
+세션에 Google Maps MCP가 연결된 경우:
 
 1. 스팟 검색 → place_id 획득
 2. 상세 정보 조회 → rating, reviews, opening_hours
@@ -223,18 +223,11 @@ WebSearch 쿼리 전략:
 
 ## Google Maps MCP 설정
 
-`.mcp.json`에 Google Maps MCP를 추가하려면:
+Composio Google Maps MCP는 공용 URL이 없다. Composio 계정에서 발급한 **전용 MCP URL과 API 키**로 사용자가 직접 연결한다. (플러그인 `.mcp.json`에는 넣지 않는다)
 
-```json
-{
-  "mcpServers": {
-    "google-maps": {
-      "type": "sse",
-      "url": "https://mcp.composio.dev/partner/composio/google-maps/mcp",
-      "note": "Google Maps Place Details & Reviews API"
-    }
-  }
-}
+```bash
+claude mcp add --transport http google-maps "<Composio에서 발급한 MCP URL>" \
+  --header "X-API-Key: <COMPOSIO_API_KEY>"
 ```
 
 > **참고**: Google Maps MCP가 없어도 웹 검색 + Chrome 스크래핑으로 기본 기능 동작

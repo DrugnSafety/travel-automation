@@ -34,8 +34,8 @@ description: 여행 정보를 어느 소스에서 가져올지 결정하는 소�
 |---|---|---|
 | **kiwi-flights** | 항공편 검색·가격 비교 | `search-flight` |
 | **trivago-hotels** | 숙박 가격·평점 비교 | `trivago-accommodation-search`, `trivago-accommodation-radius-search` |
-| **google-maps** | 장소 상세·리뷰·영업시간 | `google_maps_search`, `google_maps_place_details`, `google_maps_nearby_search` |
-| **lilt-translation** | 현지 언어 표현 번역 | `translate_text` |
+
+> Google Maps(Composio)와 LILT 번역은 공용 엔드포인트가 없거나 계정 인증이 필요해 `.mcp.json`에 넣지 않는다. 필요하면 사용자가 아래 표를 참고해 직접 연결한다.
 
 ### 세션에 연결되어 있으면 활용
 
@@ -58,6 +58,8 @@ description: 여행 정보를 어느 소스에서 가져올지 결정하는 소�
 | **DirectBooker** | 호텔 직판 최저가 | 불필요 |
 | **lastminute.com** | 임박 항공권 | 불필요 |
 | **Felt Maps** | 공유 가능한 웹 지도 생성 (`create_map`) | 필요 |
+| **Google Maps (Composio)** | 장소 상세·리뷰·영업시간 | 필요 (Composio API 키 + 계정별 MCP URL) |
+| **LILT** | 현지 언어 표현 번역 | 필요 (LILT 기업 계정 OAuth) |
 | **Wyndham** | 특정 체인 숙박 | 불필요 |
 | **Otto Travel** | 출장 예약 관리 | 필요 |
 
