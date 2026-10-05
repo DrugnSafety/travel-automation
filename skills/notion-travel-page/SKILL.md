@@ -21,11 +21,11 @@ fetch(id="notion://docs/enhanced-markdown-spec")
 
 ### 함정 1 — 한글 파손
 
-**증상**: 옥로스톤 → "열로스톤", 통나무집 → "통밥집", 진흘온첨 → "진흥온첨", 레인저 → "랑저", 벽난로 → "몸난로", 뇌우 → "되우"
+**증상**: 옐로스톤 → "열로스톤", 통나무집 → "통밥집", 진흙온천 → "진흥온천", 레인저 → "랑저", 벽난로 → "밽난로", 뇌우 → "되우"
 
 **원인**: 콘텐츠를 유니코드 이스케이프(`\uXXXX`)로 조립해 넘김
 
-**규칙**: **한글은 항상 문자 그대로 입력한다.** 이스케이프로 조립하지 않는다. 페이지 11개가 통찬에 파손된 사례가 있고, 자동 탐지가 어렵다(형태는 정상 한글이라 정규식에 안 걸린다).
+**규칙**: **한글은 항상 문자 그대로 입력한다.** 이스케이프로 조립하지 않는다. 페이지 11개가 통째로 파손된 사례가 있고, 자동 탐지가 어렵다(형태는 정상 한글이라 정규식에 안 걸린다).
 
 **작성 후 검증**: `fetch`로 되읽어 고유명사(지명·시설명·외래어)를 원문과 대조한다.
 
@@ -38,8 +38,8 @@ fetch(id="notion://docs/enhanced-markdown-spec")
 **원인**: 부모 페이지에 `replace_content` + `allow_deleting_content: true` 사용 → **새 본문에서 참조되지 않은 하위 페이지가 전부 아카이브됨**
 
 **규칙**:
-- 하위 페이지를 가진 페이지에는 `replace_content`를 쓰지 않는다. `update_content` 또는 `insert_content`를 쓔다.
-- 부득이면 새 본문에 모든 하위 페이지의 `<page url="...">제목</page>` 링크를 포함시킨다.
+- 하위 페이지를 가진 페이지에는 `replace_content`를 쓰지 않는다. `update_content` 또는 `insert_content`를 쓴다.
+- 부득이하면 새 본문에 모든 하위 페이지의 `<page url="...">제목</page>` 링크를 포함시킨다.
 
 **복구**: API로는 안 된다. `notion-move-pages`는 "already in the target location"만 반환한다. 사용자가 **노션 좌측 하단 휴지통 → 우클릭 → 복원**을 직접 해야 한다.
 
@@ -88,7 +88,7 @@ cover: "https://images.pexels.com/photos/{ID}/...&w=1600"
 
 ---
 ## ✈️ 항공·차량
-## 폐️ 숙박 (예약 우선순위)
+## 🏕️ 숙박 (예약 우선순위)
 ## 🌡️ 기후
 ## 📂 상세 페이지
 ## ⚠️ 이번 여행의 핵심 리스크
@@ -160,7 +160,7 @@ cover: "https://images.pexels.com/photos/{ID}/...&w=1600"
 ## 생성 순서
 
 ```
-1. 스캐폴드   — 메인 + 날짜별 + 참고 자료의 껵데기만 생성, 페이지 ID 즉시 기록
+1. 스캐폴드   — 메인 + 날짜별 + 참고 자료의 껍데기만 생성, 페이지 ID 즉시 기록
 2. 본문       — 페이지별로 순차 작성 (replace_content 사용 가능. 하위 페이지 없는 페이지에 한함)
 3. 이미지     — travel-image-search
 4. 일러스트   — travel-illustration
@@ -196,9 +196,9 @@ for i in range(11):
 <tr><td>값1</td><td>값2</td></tr>
 </table>
 
-<embed src="{URL}">캐션</embed>
+<embed src="{URL}">캡션</embed>
 
-<image src="file-upload://{ID}">캐션</image>
+<image src="file-upload://{ID}">캡션</image>
 
 <page url="{페이지 URL}">제목</page>          ← 페이지를 이동시킨다. 주의
 <mention-page url="{페이지 URL}">제목</mention-page>   ← 인라인 참조. 안전
@@ -217,7 +217,7 @@ for i in range(11):
 | 오류 | 대응 |
 |---|---|
 | `No matches found` | `fetch`로 현재 본문 재확인 후 `old_str`을 더 짧고 고유하게 |
-| `Invalid JSON: unexpected end of hex escape` | 콘텐츠가 너무 크거나 이스케이프 문제. **분할해서 여러 번 호출**
+| `Invalid JSON: unexpected end of hex escape` | 콘텐츠가 너무 크거나 이스케이프 문제. **분할해서 여러 번 호출** |
 | `Invalid page icon URL` | 아이콘을 이모지로 |
 | `Can't edit block that is archived` | 함정 2 참조. 사용자에게 휴지통 복원 요청 |
 | 콘텐츠 누락 | 한 번에 넣는 양이 과함. 섹션별로 나눠 `insert_content` |

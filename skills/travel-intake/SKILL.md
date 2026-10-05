@@ -221,7 +221,7 @@ URL 또는 페이지 ID. 없으면 워크스페이스 루트에 생성.
   ],
   "origin": {"city": "Boston", "airport": "BOS"},
   "party": {
-    "adults": 3, "children": [{"name": "서현", "age": 9}],
+    "adults": 3, "children": [{"name": "첫째", "age": 9}],
     "seniors": 1, "notes": "할머니 동반 — 장거리 보행 최소화"
   },
   "season": {
@@ -261,7 +261,7 @@ URL 또는 페이지 ID. 없으면 워크스페이스 루트에 생성.
     "tone": "존댓말 · 번역투 금지"
   },
   "deliverables": ["notion", "kml", "csv", "routes_md"],
-  "notion_parent": "3b802c77-e2c9-816b-8e4f-c46872ad0a9e",
+  "notion_parent": "<노션 상위 페이지 ID>",
   "reference_urls": [],
   "assumptions": []
 }

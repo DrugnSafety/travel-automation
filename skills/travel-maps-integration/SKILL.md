@@ -32,7 +32,7 @@ description: 여행 일정의 모든 장소를 좌표 기반으로 정리해 구
 
 ## 🗺️ Day {N} 지도
 
-<embed src="https://maps.google.com/maps?saddr={출발lat},{출발lon}&daddr={경유다1}+to:{경유다2}+to:{도착}&output=embed">Day {N} 경로: {요약} (약 {거리}마일 / {시간})</embed>
+<embed src="https://maps.google.com/maps?saddr={출발lat},{출발lon}&daddr={경유1}+to:{경유2}+to:{도착}&output=embed">Day {N} 경로: {요약} (약 {거리}마일 / {시간})</embed>
 
 📱 [**휴대폰에서 내비 시작하기 →**](https://www.google.com/maps/dir/?api=1&origin={lat},{lon}&destination={lat},{lon}&waypoints={lat},{lon}%7C{lat},{lon}&travelmode=driving)
 
@@ -77,7 +77,7 @@ scripts/build_map_assets.py --spots spots.json --out assets/
 | 차량 (렌트/반납) | car | 회색 |
 | 관문 (공원 입구) | gate | 갈색 |
 | 숙박 | campground / lodging | 초록 |
-| 관광 | camera | 빨간 |
+| 관광 | camera | 빨강 |
 | 야생동물 | paw | 주황 |
 | 식당 | dining | 노랑 |
 | 쇼핑 | shopping | 보라 |
@@ -116,7 +116,7 @@ scripts/build_map_assets.py --spots spots.json --out assets/
 수집한 모든 좌표는 여행 지역 바운딩 박스 안에 있어야 한다.
 
 ```python
-BOX = {"n": 46.0, "s": 43.0, "w": -112.0, "e": -101.0}  # 예: 옥로스톤~배들랜즈
+BOX = {"n": 46.0, "s": 43.0, "w": -112.0, "e": -101.0}  # 예: 옐로스톤~배들랜즈
 assert BOX["s"] <= lat <= BOX["n"] and BOX["w"] <= lon <= BOX["e"]
 ```
 
@@ -126,7 +126,7 @@ assert BOX["s"] <= lat <= BOX["n"] and BOX["w"] <= lon <= BOX["e"]
 
 국립공원의 전망대·야생동물 관찰 지점은 정식 주소가 없다. **이름 검색으로는 못 찾거나 엉뚱한 곳이 나온다.** 반드시 좌표로 지정한다.
 
-또한 대형차 주차가 가능한 별도 트레일헤드가 있는 경우, **본 주차장이 아니라 그쪽 좌표를 준다.** (예: 그랜드프리즘매틱 본 주차장 대신 페어리폴스 트레일헤드)
+또한 대형차 주차가 가능한 별도 트레일헤드가 있는 경우, **본 주차장이 아니라 그쪽 좌표를 준다.** (예: 그랜드프리즈매틱 본 주차장 대신 페어리폴스 트레일헤드)
 
 ---
 
@@ -136,7 +136,7 @@ assert BOX["s"] <= lat <= BOX["n"] and BOX["w"] <= lon <= BOX["e"]
 {
   "id": "grand-prismatic",
   "day": 2,
-  "name_ko": "그랜드프리즘매틱",
+  "name_ko": "그랜드프리즈매틱",
   "name_en": "Grand Prismatic Spring",
   "lat": 44.5251, "lon": -110.8383,
   "category": "관광",
@@ -145,7 +145,7 @@ assert BOX["s"] <= lat <= BOX["n"] and BOX["w"] <= lon <= BOX["e"]
     "primary": {"lat": 44.5251, "lon": -110.8383, "rv_ok": false},
     "alternate": {"name": "Fairy Falls Trailhead", "lat": 44.5133, "lon": -110.8300, "rv_ok": true}
   },
-  "best_time": "오전 10~12시 (수증기가 걸힌 뒤)",
+  "best_time": "오전 10~12시 (수증기가 걷힌 뒤)",
   "arrival_order": 3
 }
 ```
