@@ -2,6 +2,25 @@
 
 간단한 요약은 [README.md](README.md)에도 있습니다. 여기에는 버전별 상세 변경 사항을 기록합니다.
 
+## v3.2.1 — 2026-10-05
+
+**GitHub 공개본을 실제 사용 중인 최종본과 일치시켰습니다.** v3.2.0 동기화 때 일부 파일이 빠지고, 유니코드 이스케이프 수기 입력으로 한글이 깨진 채 올라간 문제를 바로잡은 릴리스입니다. 이제 README가 안내하는 스킬 21개·명령어 8개가 저장소에 모두 들어 있습니다.
+
+- **누락분 반영**
+  - 스킬 3종: `travel-quality-loop`, `travel-receipt-ocr`, `travel-url-ingest`
+  - 스크립트 2종: `travel-maps-integration/scripts/build_map_assets.py`, `travel-receipt-ocr/scripts/receipt_intake.py`
+- **최종본으로 교체한 파일 13개** — 깨진 한글 교정(예: 옥로스톤 → 옐로스톤, 진흘온첨 → 진흙온천, 캐션 → 캡션, "표 셀은 좋다" → "표 셀은 좁다"), 축약돼 있던 `travel-orchestrator`를 전문으로 복원, 그 밖의 표기 차이 정리
+- **폐지 스텁 4종 삭제** — `travel-image-generator`, `travel-notion-export`, `travel-plan-intake`, `travel-study-guide`. 이름 변경 매핑은 아래 v3.2.0 표에 남겨 둡니다
+- **`.mcp.json` 수정** — `claude plugin validate` 오류 9건으로 모든 번들 서버가 로드 시 조용히 제외되던 문제를 해결
+  - `kiwi-flights`, `trivago-hotels`: 공식 문서 기준 `http` 전송 방식으로 수정해 정상 로드
+  - `lilt-translation`(기업 계정 OAuth 필요), `google-maps`(Composio 계정별 URL·API 키 필요) 제거 — 직접 연결 방법은 README와 `travel-spot-reviews`에 안내
+  - 서버가 아닌 `_recommended` 항목 제거 — 권장 커넥터 목록은 README로 이동
+- **예시 데이터 일반화** — `travel-intake`의 trip-brief 예시(이름·Notion 페이지 ID)와 `receipt_intake.py` 예시(카드 뒷자리)를 일반 예시값으로 교체
+- **문서**
+  - README 전면 개편: Claude 앱·Claude Code 설치 방법, 사전 준비(필수·권장·선택), 단계별 게이트, 알려진 제약, 영문 요약
+  - 실제 동작과 다르던 설명 정정: 사진 소스(Wikipedia → Pexels 우선), 일러스트 API 키 경로(`~/.config/gpt-image/.env`), 캘린더 ICS 폴백 문구 삭제, 번들 커넥터 목록
+  - `.gitignore` 추가
+
 ## v3.2.0 — 2026-08-18
 
 **GitHub 저장소를 실제 사용 중인 최신 구조와 동기화하고, 문서를 정비했습니다.**
@@ -13,13 +32,13 @@
   - 상세 변경 이력을 이 파일(`UPDATES.md`)로 분리, README는 요약만 유지
   - `plugin.json`에 `homepage`/`repository` 필드 추가
 - **스킬 동기화** — 아래 [스킬 이름 변경/폐지 매핑](#스킬-이름-변경폐지-매핑) 참고
-  - 신규 8종: `travel-intake`, `travel-quality-loop`, `travel-maps-integration`, `travel-illustration`, `travel-naver-search`, `travel-url-ingest`, `travel-external-sources`, `travel-expense-db`, `travel-receipt-ocr` (일부는 v3.1 시점에 이미 로컬에 존재했으나 GitHub에는 반영되지 않았던 항목 포함)
+  - 신규 9종: `travel-intake`, `travel-quality-loop`, `travel-maps-integration`, `travel-illustration`, `travel-naver-search`, `travel-url-ingest`, `travel-external-sources`, `travel-expense-db`, `travel-receipt-ocr` (일부는 v3.1 시점에 이미 로컬에 존재했으나 GitHub에는 반영되지 않았던 항목 포함)
   - 이름 변경 2종: `travel-plan-intake` → `travel-intake`, `travel-image-generator` → `travel-illustration`
   - 폐지 2종: `travel-notion-export`(GitHub 백업 기능, 제외됨), `travel-study-guide`(전용 예습 자료 생성, 제외됨 — 일부 기능은 `travel-content-enrichment`에 포함)
   - 명령어 4종 추가: `/trip-audit`, `/trip-expense`, `/trip-images`, `/trip-map`
 - **버전 표기 정정** — GitHub에 공개된 `plugin.json`이 실제로는 서로 다른 두 구조(구 아키텍처와 상태 하네스 재작성판)에 대해 동일하게 `3.1.0`을 표기하고 있었습니다. 이번에 `3.2.0`으로 올려 향후 업데이트 감지가 정상 동작하도록 정정했습니다.
 
-> 참고: 이름 변경/폐지된 4개 스킬 폴더는 GitHub API 제약으로 완전히 삭제하지 못하고, 대신 각 `SKILL.md`를 안내 문구로 교체했습니다. 완전히 지우려면 저장소에서 해당 폴더를 수동으로 삭제하세요.
+> 참고: 이름 변경/폐지된 4개 스킬 폴더는 GitHub API 제약으로 완전히 삭제하지 못하고, 대신 각 `SKILL.md`를 안내 문구로 교체했습니다. 완전히 지우려면 저장소에서 해당 폴더를 수동으로 삭제하세요. → **v3.2.1에서 삭제 완료.** 또한 이 릴리스의 실제 저장소에는 `travel-quality-loop`, `travel-receipt-ocr`, `travel-url-ingest`가 빠져 있었으며 v3.2.1에서 반영했습니다.
 
 ### 스킬 이름 변경/폐지 매핑
 
