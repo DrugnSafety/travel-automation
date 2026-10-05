@@ -77,7 +77,7 @@ Notion 여행 페이지에 삽입된 이미지의 유효성을 자동 검증하�
    curl -sI --max-time 5 "{image_url}" | grep -i "content-type"
 
    - image/jpeg, image/png, image/webp: ✅ 정상
-   - text/html: ❌ 이미지가 아니→ 교체 필요
+   - text/html: ❌ 이미지가 아님 → 교체 필요
 
 결과: 검증 결과 [{url, status, issue_type, needs_replacement}]
 ```

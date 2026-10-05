@@ -33,7 +33,7 @@ description: 여행 지출을 관리하는 Notion 데이터베이스와 경비 �
 ```sql
 CREATE TABLE (
   "항목" TITLE,
-  "분류" SELECT('항공':blue, 'RV':green, '렌트카':purple, '숙박':orange,
+  "분류" SELECT('항공':blue, 'RV':green, '렌터카':purple, '숙박':orange,
                 '식비':yellow, '입장료':pink, '장비·용품':brown,
                 '연료':red, '기타':gray),
   "금액(USD)" NUMBER FORMAT 'dollar',

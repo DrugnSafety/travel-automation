@@ -85,11 +85,11 @@ text, watermarks, modern UI elements.
 
 | 시각 | 프롬프트 표현 |
 |---|---|
-| 05:00~07:00 | `pre-dawn blue hour, mist rising, low warm rim light` |
-| 07:00~10:00 | `crisp morning light, long shadows, clear air` |
-| 10:00~15:00 | `high midday sun, saturated colors, short shadows` |
-| 15:00~18:00 | `golden hour, long amber shadows` |
-| 18:00~20:00 | `sunset, orange-to-violet gradient sky` |
+| 05:00\~07:00 | `pre-dawn blue hour, mist rising, low warm rim light` |
+| 07:00\~10:00 | `crisp morning light, long shadows, clear air` |
+| 10:00\~15:00 | `high midday sun, saturated colors, short shadows` |
+| 15:00\~18:00 | `golden hour, long amber shadows` |
+| 18:00\~20:00 | `sunset, orange-to-violet gradient sky` |
 | 20:00 이후 | `deep twilight, artificial lighting, first stars` |
 
 **③ 계절 특성**
@@ -98,7 +98,7 @@ text, watermarks, modern UI elements.
 | 계절 | 시각 요소 |
 |---|---|
 | 늦여름 (8월) | 황금빛 마른 초원, 짙은 상록수, 오후 뭉게구름과 먼 소나기, 야생화 끝물 |
-| 초가을 (9~10월) | 노란 아스펜, 엘크 발정기, 첫서리, 낮은 태양각 |
+| 초가을 (9\~10월) | 노란 아스펜, 엘크 발정기, 첫서리, 낮은 태양각 |
 | 겨울 | 눈 덮인 능선, 김이 오르는 온천, 앙상한 나무, 창백한 하늘 |
 | 봄 | 잔설, 불어난 계곡물, 새끼 동물, 신록 |
 
@@ -172,7 +172,7 @@ python3 ~/.claude/skills/gpt-image-prompt-picker/scripts/generate.py \
 
 - 크기: 노션 페이지 상단은 **1536x1024 (16:9)** 가 적합
 - 하루 상한 기본 30장 (`GIP_DAILY_LIMIT`)
-- 2~3장씩 나눠 실행한다. 한 번에 10장 이상 요청하면 rate limit에 걸린다.
+- 2\~3장씩 나눠 실행한다. 한 번에 10장 이상 요청하면 rate limit에 걸린다.
 
 ### 3. 노션 업로드 및 삽입
 
